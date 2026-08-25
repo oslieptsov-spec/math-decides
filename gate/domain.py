@@ -57,6 +57,7 @@ OUTPUTS = {
         "title": "Execution slippage",
         "unit": "bps",
         "requires": ("book_depth_profile",),
+        "derives_from": (),
         "closed_form": "walk the linear book until the order is filled; "
                        "slippage = (vwap - mid) / mid * 1e4",
     },
@@ -64,6 +65,7 @@ OUTPUTS = {
         "title": "Effective fill price",
         "unit": "price",
         "requires": ("book_depth_profile", "gap_size"),
+        "derives_from": ("slippage_bps",),
         "closed_form": "mid * (1 + gap) * (1 + slippage_bps / 1e4)",
     },
     "liquidation_risk": {
@@ -71,6 +73,8 @@ OUTPUTS = {
         "unit": "probability",
         "requires": ("book_depth_profile", "gap_size", "panic_multiplier",
                      "liquidation_threshold"),
+        # Uses a panic-swept slippage of its own, not the slippage_bps value.
+        "derives_from": (),
         "closed_form": "share of the swept distribution breaching "
                        "maintenance_margin under m_panic amplification",
     },
@@ -78,6 +82,7 @@ OUTPUTS = {
         "title": "Defensive factor",
         "unit": None,
         "requires": (),
+        "derives_from": (),
         "closed_form": None,
         "no_law_exists": True,
         "note": "A plausible-sounding quantity with no closing relation. "
@@ -145,6 +150,11 @@ def missing_laws(output, declared):
     return tuple(law for law in OUTPUTS[output]["requires"] if law not in set(declared))
 
 
+def upstream_outputs(output):
+    """Outputs whose computed value this output consumes."""
+    return OUTPUTS[output].get("derives_from", ())
+
+
 def has_no_law(output):
     """True when no closing relation exists for the output."""
     return bool(OUTPUTS[output].get("no_law_exists"))
@@ -175,6 +185,13 @@ def _selfcheck():
             assert law in LAWS, f"{name}: unknown law {law}"
         assert bool(spec["requires"]) != bool(spec.get("no_law_exists")), \
             f"{name}: an output must either require laws or have none at all"
+    for name in OUTPUTS:
+        for up in upstream_outputs(name):
+            assert up in OUTPUTS, f"{name}: unknown upstream {up}"
+            # An output must require at least the laws its upstreams require,
+            # otherwise law closure and value closure could disagree.
+            assert set(OUTPUTS[up]["requires"]) <= set(OUTPUTS[name]["requires"]), \
+                f"{name}: does not require everything {up} requires"
     for status, _ in REASON_CODES.values():
         assert status in STATUSES, status
     for ex_name, ex in EXAMPLES.items():
