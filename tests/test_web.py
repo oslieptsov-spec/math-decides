@@ -121,7 +121,7 @@ class Page(unittest.TestCase):
         import re
         html = (server.ROOT / "index.html").read_text(encoding="utf-8")
         for url in re.findall(r"https?://[^\s\"'<>)]+", html):
-            self.assertIn("github.com/oslieptsov-spec", url, url)
+            self.assertIn("github.com/oslieptsov-spec/math-decides", url, url)
 
     def test_the_mode_chip_has_a_value_for_every_path(self):
         self.assertIn(server.mode(), ("nim", "api-catalog", "canned"))
