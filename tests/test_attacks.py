@@ -1,5 +1,10 @@
 """Suite tests. The table in RESULTS.md is generated from exactly this."""
+import json
+import re
 import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
 
 from attacks import cases, runner
 from gate import canonical, engine, examples
@@ -16,6 +21,52 @@ class Coverage(unittest.TestCase):
 
     def test_the_suite_is_at_least_twenty_cases(self):
         self.assertGreaterEqual(len(cases.ALL_CASES), 20)
+
+
+class PublishedNumbers(unittest.TestCase):
+    """Every public count comes from the suite, never from a keystroke.
+
+    Twice now a number has lived in two versions at once: a page saying 34 and
+    a recording saying 33, because the recording predated a case. A count typed
+    into prose is a count that will be wrong on the day someone reads it.
+    """
+
+    def test_the_recording_matches_the_suite(self):
+        recording = json.loads((ROOT / "web/sabotage.json").read_text(encoding="utf-8"))
+        self.assertEqual(recording["summary"]["cases"], len(cases.ALL_CASES))
+        self.assertIn(f"/{len(cases.ALL_CASES)} pass", recording["headline"])
+
+    def test_the_results_table_matches_the_suite(self):
+        text = (ROOT / "attacks/RESULTS.md").read_text(encoding="utf-8")
+        found = re.search(r"(\d+) of (\d+) cases blocked", text)
+        self.assertIsNotNone(found, "the table lost its headline")
+        self.assertEqual(int(found.group(2)), len(cases.ALL_CASES))
+
+    def test_no_published_document_carries_a_stale_count(self):
+        """Any 'n of m' or 'n/m' in what ships, where m could be a case count.
+
+        Only tracked files: a private planning note may quote a number that was
+        true when it was written, and often should. What ships may not.
+        """
+        import subprocess
+        total = len(cases.ALL_CASES)
+        tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True,
+                                 text=True).stdout.split()
+        targets = [ROOT / name for name in tracked
+                   if name.endswith((".md", ".html"))]
+        for path in targets:
+            if not path.exists():
+                continue
+            text = path.read_text(encoding="utf-8")
+            for numerator, denominator in re.findall(r"(\d+)\s*(?:of|/)\s*(\d+)", text):
+                if 20 <= int(denominator) <= 99:
+                    self.assertEqual(int(denominator), total,
+                                     f"{path.name}: {numerator}/{denominator} is stale")
+
+    def test_the_page_never_hardcodes_the_count(self):
+        html = (ROOT / "web/index.html").read_text(encoding="utf-8")
+        self.assertIn("r-attacks", html)
+        self.assertNotIn(f"{len(cases.ALL_CASES)} attacks", html)
 
 
 class Guarded(unittest.TestCase):

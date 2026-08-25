@@ -701,6 +701,9 @@ const TOUR = [
 
 let tourAt = -1;
 let tourHandler = null;
+// A step whose evidence is a click needs that click to have happened before a
+// still is taken. Deep links fire it once; a visitor clicks it themselves.
+let tourAutoFire = false;
 
 function tourClear(){
   document.querySelectorAll('.lit,.pulse,.spot').forEach(el =>
@@ -766,6 +769,19 @@ async function tourGo(index){
     };
     document.addEventListener('click', tourHandler, true);
   }
+  if (tourAutoFire && step.pulse){
+    tourAutoFire = false;
+    const button = document.querySelector(step.pulse);
+    if (button) setTimeout(() => {
+      // Fire the evidence, but stay on the step: a deep link to step N is a
+      // request to look at step N, not to be carried past it.
+      if (tourHandler){
+        document.removeEventListener('click', tourHandler, true);
+        tourHandler = null;
+      }
+      button.click();
+    }, 500);
+  }
 }
 
 function enterApp(){ $('#hero0').remove(); }
@@ -792,7 +808,7 @@ function enterApp(){ $('#hero0').remove(); }
   $('#hero-skip').onclick = () => enterApp();
   $('#hero-tour').onclick = async () => { enterApp(); await tourGo(0); };
   if (step !== null || location.hash) enterApp();
-  if (step) { await validate(); await tourGo(step - 1); return; }
+  if (step) { tourAutoFire = true; await validate(); await tourGo(step - 1); return; }
 
   // Deep link for the recording, opened before the model is asked anything —
   // the replay does not depend on a live path and should not wait for one.

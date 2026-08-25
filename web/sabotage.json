@@ -1,12 +1,12 @@
 {
  "available": true,
  "watermark": "guardrail disabled \u2014 failure-mode demonstration",
- "headline": "13/33 pass, 2 silently released [defensive_factor]",
+ "headline": "14/34 pass, 2 silently released [defensive_factor]",
  "summary": {
-  "cases": 33,
+  "cases": 34,
   "blocked": 20,
   "input_cases": 19,
-  "model_cases": 14,
+  "model_cases": 15,
   "silently_released": 2,
   "released_outputs": [
    "defensive_factor"
@@ -277,6 +277,16 @@
   {
    "id": "model-reason-swap",
    "title": "right status, wrong reason beside it",
+   "surface": "model",
+   "blocked": false,
+   "evidence": [
+    "answer served unchecked"
+   ],
+   "silently_released": []
+  },
+  {
+   "id": "model-law-swap",
+   "title": "a law offered that would not release it",
    "surface": "model",
    "blocked": false,
    "evidence": [
