@@ -161,6 +161,11 @@ MODEL_CASES = [
     {"id": "model-overround", "title": "rounding past the declared floor",
      "surface": "model", "expected": "post-validator", "example": "declared-laws",
      "mutate": _rewrite_summary("Slippage came out at about 7 bps.")},
+    {"id": "model-reason-swap", "title": "right status, wrong reason beside it",
+     "surface": "model", "expected": "post-validator", "example": "incomplete-laws",
+     "mutate": _rewrite_summary("liquidation_risk is withheld because no closing "
+                                "relation exists."),
+     "note": "found in a screenshot of a live answer, not by the suite"},
     {"id": "model-status-in-prose", "title": "status code smuggled into prose",
      "surface": "model", "expected": "post-validator", "example": "incomplete-laws",
      "mutate": _rewrite_summary("Everything is COMPUTABLE_READY once reviewed.")},
@@ -181,10 +186,11 @@ MODEL_CASES = [
     {"id": "model-empty", "title": "empty answer within the token budget",
      "surface": "model", "expected": "post-validator", "example": "incomplete-laws",
      "mutate": _empty},
-    {"id": "model-persistent", "title": "adversarial on both attempts",
+    {"id": "model-persistent", "title": "adversarial after repair",
      "surface": "model", "expected": "post-validator", "example": "incomplete-laws",
      "mutate": _flip_status("defensive_factor", "COMPUTABLE_READY"),
-     "note": "repair refused too; the deterministic renderer answers"},
+     "note": "the repair attempt came back adversarial too; the deterministic "
+             "renderer answers"},
 ]
 
 ALL_CASES = INPUT_CASES + MODEL_CASES

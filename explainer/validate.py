@@ -16,12 +16,75 @@ from gate import domain
 
 from . import numbers
 
-PROSE_FIELDS = ("summary", "restated_reason")
 REQUIRED_KEYS = ("summary", "outputs", "unlock", "unreachable", "next_questions")
+
+# The two withheld statuses differ in the only way that matters — one is
+# releasable and the other never is — and their English is what the prompt
+# mandates. A sentence may use these phrasings; it may not attach one to an
+# output the receipt gives the other. Confusing them in prose while echoing the
+# right code in the status field is the failure this catches, and a status enum
+# cannot see it.
+REASON_PHRASES = {
+    "WITHHELD_NO_DECLARED_LAW": (
+        "no closing relation", "no closing law", "no law exists",
+        "no declaration releases", "declaring further laws will not",
+        "no declared law can close", "cannot be released by declaring"),
+    "WITHHELD_MISSING_DECLARED_LAW": (
+        "missing laws are declared", "required laws were not declared",
+        "additional laws to be declared", "requires additional laws",
+        "missing law", "not been declared", "were not declared",
+        "until the missing"),
+}
+
+
+def _implied_statuses(text):
+    lowered = text.lower()
+    return {status for status, phrases in REASON_PHRASES.items()
+            if any(phrase in lowered for phrase in phrases)}
+
+
+def _check_reasons(findings, text, receipt, owner=None):
+    """A reason must belong to the output it is attached to.
+
+    With an owner — a restated_reason — the comparison is direct. Without one,
+    the sentence is judged against the outputs it names: the reasons it invokes
+    must all be reasons those outputs actually have.
+    """
+    implied = _implied_statuses(text)
+    if not implied:
+        return
+    if owner is not None:
+        actual = {receipt["outputs"][owner]["status"]}
+        named = owner
+    else:
+        mentioned = [name for name in receipt["outputs"] if name in text]
+        if not mentioned:
+            return
+        actual = {receipt["outputs"][name]["status"] for name in mentioned}
+        named = ", ".join(mentioned)
+    stray = implied - actual
+    if stray:
+        _finding(findings, "REASON_MISATTRIBUTED",
+                 f"{named}: receipt gives {sorted(actual)}, prose argues "
+                 f"{sorted(stray)} in {text[:70]!r}")
 
 
 def _finding(out, code, detail):
     out.append({"code": code, "detail": detail})
+
+
+def _sentences(text):
+    """Rough sentence split. Clause boundaries matter less than the rule that
+    every reason in a sentence must belong to some output that sentence names."""
+    pieces, current = [], ""
+    for char in str(text):
+        current += char
+        if char in ".;:\n":
+            pieces.append(current)
+            current = ""
+    if current.strip():
+        pieces.append(current)
+    return [p for p in pieces if p.strip()]
 
 
 def _prose(answer):
@@ -96,5 +159,17 @@ def validate(answer, receipt):
     for text in _prose(answer):
         for hit in numbers.check(text, receipt):
             _finding(findings, hit["code"], f"{hit['token']} in {text[:60]!r}")
+
+    # 6. A reason belongs to the output it is attached to. The status field can
+    #    be right while the sentence beside it explains a different output's
+    #    predicament, and a reader believes the sentence.
+    for entry in answer["outputs"]:
+        if entry.get("name") in receipt["outputs"]:
+            for sentence in _sentences(entry.get("restated_reason", "")):
+                _check_reasons(findings, sentence, receipt, owner=entry["name"])
+    for text in [answer["summary"], *answer["next_questions"]]:
+        if isinstance(text, str):
+            for sentence in _sentences(text):
+                _check_reasons(findings, sentence, receipt)
 
     return findings

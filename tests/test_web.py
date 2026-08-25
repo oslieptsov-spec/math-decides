@@ -3,12 +3,31 @@ enforces is a rule an attacker skips."""
 import inspect
 import json
 import unittest
+from pathlib import Path
 
 from web import server
 
 
+def isolate_counter(case):
+    """Point the counter at a scratch file.
+
+    The suite used to increment the published counter, which is the one number
+    on the page that has to mean something. A test run is not an attack.
+    """
+    import tempfile
+    original = server.COUNTER_FILE
+    handle = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
+    handle.close()
+    server.COUNTER_FILE = Path(handle.name)
+    server.COUNTER_FILE.unlink()
+    case.addCleanup(lambda: setattr(server, "COUNTER_FILE", original))
+
+
 class FreeTextIsStructuralOnly(unittest.TestCase):
     """The open field is the second abuse surface, and it is removed, not policed."""
+
+    def setUp(self):
+        isolate_counter(self)
 
     def test_no_model_is_called(self):
         source = inspect.getsource(server.api_freetext)
@@ -44,6 +63,9 @@ class SabotageIsReplay(unittest.TestCase):
 
 
 class Counter(unittest.TestCase):
+    def setUp(self):
+        isolate_counter(self)
+
     def test_a_block_increments_and_keeps_its_start_date(self):
         before = server._load_counter()
         after = server.api_attack({"id": "inj-direct"})["counter"]

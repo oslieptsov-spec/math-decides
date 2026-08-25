@@ -12,10 +12,26 @@ import http.client
 import json
 import threading
 import unittest
+from pathlib import Path
 import urllib.request
 from http.server import ThreadingHTTPServer
 
 from web import server
+
+
+def isolate_counter(case):
+    """Point the counter at a scratch file.
+
+    The suite used to increment the published counter, which is the one number
+    on the page that has to mean something. A test run is not an attack.
+    """
+    import tempfile
+    original = server.COUNTER_FILE
+    handle = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
+    handle.close()
+    server.COUNTER_FILE = Path(handle.name)
+    server.COUNTER_FILE.unlink()
+    case.addCleanup(lambda: setattr(server, "COUNTER_FILE", original))
 
 
 class Egress:
@@ -93,6 +109,7 @@ class Server(unittest.TestCase):
 
     def setUp(self):
         server._hits.clear()
+        isolate_counter(self)
 
     def call(self, method, path, body=None):
         connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=30)

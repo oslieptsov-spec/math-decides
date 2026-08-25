@@ -79,9 +79,12 @@ select{background:var(--raised);color:var(--text);border:1px solid var(--line);
 .unlock .never{color:var(--grey)}
 
 /* ---- explanation ------------------------------------------------------ */
-.prov{font-family:var(--mono);font-size:11px;color:var(--faint);
-      border:1px solid var(--line);border-radius:2px;padding:8px 10px;margin-bottom:12px}
-.prov div{display:flex;justify-content:space-between;gap:10px}
+.provline{display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--faint);
+          border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+          padding:6px 0;margin:0 0 12px}
+.provline b{color:var(--muted);font-weight:500}
+.provline b.live{color:var(--accent)}
+.provline b.canned{color:var(--amber)}
 .summary{margin:0 0 12px}
 .rej{border:1px solid #4a3a12;background:#1c1608;color:var(--amber);
      font-family:var(--mono);font-size:11px;padding:8px 10px;border-radius:2px;margin-bottom:12px}
@@ -125,6 +128,10 @@ dialog::backdrop{background:rgba(5,7,10,.8)}
 .dlg-head b{color:var(--amber);font-family:var(--mono);font-size:12px;letter-spacing:.05em}
 .dlg-head p{margin:4px 0 0;font-size:12px;color:var(--muted)}
 .dlg-body{padding:14px 16px;max-height:60vh;overflow:auto}
+.dlg-body:focus,.dlg-body:focus-visible{outline:none}
+.dlg-split{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;
+           text-transform:uppercase;color:var(--faint);padding:10px 0 5px;
+           border-bottom:1px solid var(--line)}
 .dlg-body .case{display:flex;gap:10px;padding:5px 0;border-bottom:1px solid var(--line);
                 font-family:var(--mono);font-size:11.5px}
 .dlg-foot{padding:10px 16px;border-top:1px solid var(--line);display:flex;justify-content:flex-end}
@@ -173,6 +180,13 @@ dialog::backdrop{background:rgba(5,7,10,.8)}
   <section>
     <h2>3 · Explanation</h2>
     <p class="sub">May describe. May not decide.</p>
+    <div class="provline mono" id="provline">
+      <span>model <b id="pv-model">—</b></span>
+      <span>build <b id="pv-build">—</b></span>
+      <span>path <b id="pv-path">—</b></span>
+      <span>temp <b id="pv-temp">—</b></span>
+      <span>answered by <b id="pv-source">—</b></span>
+    </div>
     <div id="explanation"><p class="empty">no explanation yet</p></div>
   </section>
 </main>
@@ -222,6 +236,7 @@ const short = h => h ? h.slice(0,8) + '…' : '—';
 const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 
 let lastReceipt = null;
+let currentMode = 'canned';
 
 const PRESETS = {
   'incomplete-laws': {
@@ -294,14 +309,15 @@ function renderExplanation(result){
     ? `<div class="rej"><b>explanation unavailable — receipt stands</b>
         the deterministic renderer answered; the receipt is unchanged</div>` : '';
 
+  const path = result.mode || requested.path || '—';
+  $('#pv-model').textContent = returned.model || requested.model || '—';
+  $('#pv-build').textContent = returned.system_fingerprint || 'not supplied';
+  $('#pv-path').textContent = path;
+  $('#pv-source').textContent = result.source;
+  $('#pv-temp').textContent = requested.temperature ?? '—';
+  $('#pv-path').className = path === 'canned' ? 'canned' : 'live';
+
   $('#explanation').innerHTML = `
-    <div class="prov">
-      <div><span>model</span><span>${esc(returned.model || requested.model || '—')}</span></div>
-      <div><span>path</span><span>${esc(result.mode || requested.path || '—')}</span></div>
-      <div><span>temperature</span><span>${esc(requested.temperature ?? '—')}</span></div>
-      <div><span>build</span><span>${esc(returned.system_fingerprint || 'not supplied')}</span></div>
-      <div><span>source</span><span>${esc(result.source)}</span></div>
-    </div>
     ${rejBlocks}${fallback}
     <p class="summary">${esc(answer.summary)}</p>
     ${answer.outputs.map(o => `<div class="reason"><b>${esc(o.name)}</b> — ${esc(o.restated_reason)}</div>`).join('')}
@@ -326,7 +342,8 @@ async function validate(){
     return;
   }
   renderReceipt(verdict.receipt);
-  $('#explanation').innerHTML = '<p class="empty">asking the model…</p>';
+  $('#explanation').innerHTML = `<p class="empty">${
+    currentMode === 'canned' ? 'serving recorded explanation…' : 'asking the model…'}</p>`;
   const unchanged = JSON.stringify(request) === JSON.stringify(PRESETS[preset]);
   const result = await api('/api/explain', unchanged ? {example: preset} : {request});
   if (result.ok) renderExplanation(result);
@@ -344,6 +361,43 @@ function logLine(entry){
     <span class="ev">receipt_sha ${shaEqual ? 'unchanged' : 'MOVED'}</span>`;
   log.prepend(row);
   if (entry.counter) setCounter(entry.counter);
+}
+
+async function showSabotage(){
+  const rec = await api('/api/sabotage');
+  if (!rec.available){ $('#dlg-body').innerHTML = '<p class="empty">no recording available</p>'; }
+  else {
+    $('#dlg-head').textContent = rec.headline + ' — recorded replay, not a live switch';
+    // Failures first. The cases that get through are the whole point of the
+    // recording; a viewer should not have to scroll past twenty successes to
+    // find out what the guardrail was actually holding back.
+    const row = c => `<div class="case">
+        <span style="min-width:64px;color:${c.blocked ? 'var(--ready)' : 'var(--red)'}">
+          ${c.blocked ? 'blocked' : 'PASSED'}</span>
+        <span style="flex:1">${esc(c.title)}</span>
+        <span style="color:var(--red)">${c.silently_released.length ? 'released ' + esc(c.silently_released.join(', ')) : ''}</span>
+      </div>`;
+    const passed = rec.cases.filter(c => !c.blocked);
+    const held = rec.cases.filter(c => c.blocked);
+    $('#dlg-body').innerHTML =
+      `<div class="dlg-split">${passed.length} reach the consumer without the post-validator</div>`
+      + passed.map(row).join('')
+      + `<div class="dlg-split">${held.length} still blocked — structure and schema do not depend on it</div>`
+      + held.map(row).join('');
+  }
+  $('#dlg').showModal();
+}
+
+async function showRejected(){
+  const rec = await api('/api/rejected');
+  if (!rec.available) return;
+  const verdict = await api('/api/evaluate', {example: rec.example});
+  if (verdict.ok) renderReceipt(verdict.receipt);
+  $('#preset').value = rec.example;
+  loadPreset();
+  renderExplanation({...rec, mode: 'recorded'});
+  $('#explanation').insertAdjacentHTML('afterbegin',
+    `<div class="rej"><b>recorded example</b>${esc(rec.note)}</div>`);
 }
 
 async function loadGroups(){
@@ -380,28 +434,23 @@ $('#fire').addEventListener('click', async () => {
 });
 $('#expand').addEventListener('click', () => { $('#canonical').hidden = !$('#canonical').hidden; });
 $('#dlg-close').addEventListener('click', () => $('#dlg').close());
-$('#sabotage').addEventListener('click', async () => {
-  const rec = await api('/api/sabotage');
-  if (!rec.available){ $('#dlg-body').innerHTML = '<p class="empty">no recording available</p>'; }
-  else {
-    $('#dlg-head').textContent = rec.headline + ' — recorded replay, not a live switch';
-    $('#dlg-body').innerHTML = rec.cases.map(c => `<div class="case">
-        <span class="${c.blocked ? 'ok' : 'bad'}" style="min-width:64px;color:${c.blocked ? 'var(--ready)' : 'var(--red)'}">
-          ${c.blocked ? 'blocked' : 'PASSED'}</span>
-        <span style="flex:1">${esc(c.title)}</span>
-        <span style="color:var(--red)">${c.silently_released.length ? 'released ' + esc(c.silently_released.join(', ')) : ''}</span>
-      </div>`).join('');
-  }
-  $('#dlg').showModal();
-});
+$('#sabotage').addEventListener('click', showSabotage);
 
 (async function init(){
   loadPreset();
   const state = await api('/api/state');
+  currentMode = state.mode;
   setCounter(state);
   $('#mode').textContent = state.mode;
   $('#mode').dataset.mode = state.mode;
   await loadGroups();
+  // Deep link for the recording, opened before the model is asked anything —
+  // the replay does not depend on a live path and should not wait for one.
+  if (location.hash === '#sabotage') showSabotage();
+  if (location.hash === '#rejected'){ await showRejected(); return; }
+  // Land on the answer, not on a request to press a button. The empty state
+  // is for a request the visitor has cleared, not for a first impression.
+  await validate();
 })();
 </script>
 </body>

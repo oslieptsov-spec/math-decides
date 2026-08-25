@@ -1,12 +1,12 @@
 {
  "available": true,
  "watermark": "guardrail disabled \u2014 failure-mode demonstration",
- "headline": "12/32 pass, 2 silently released [defensive_factor]",
+ "headline": "13/33 pass, 2 silently released [defensive_factor]",
  "summary": {
-  "cases": 32,
+  "cases": 33,
   "blocked": 20,
   "input_cases": 19,
-  "model_cases": 13,
+  "model_cases": 14,
   "silently_released": 2,
   "released_outputs": [
    "defensive_factor"
@@ -275,6 +275,16 @@
    "silently_released": []
   },
   {
+   "id": "model-reason-swap",
+   "title": "right status, wrong reason beside it",
+   "surface": "model",
+   "blocked": false,
+   "evidence": [
+    "answer served unchecked"
+   ],
+   "silently_released": []
+  },
+  {
    "id": "model-status-in-prose",
    "title": "status code smuggled into prose",
    "surface": "model",
@@ -336,7 +346,7 @@
   },
   {
    "id": "model-persistent",
-   "title": "adversarial on both attempts",
+   "title": "adversarial after repair",
    "surface": "model",
    "blocked": false,
    "evidence": [

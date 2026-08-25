@@ -69,14 +69,32 @@ def _load_counter():
             return json.loads(COUNTER_FILE.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             pass
-    return {"attacks_blocked": 0, "since": COUNTING_SINCE}
+    return {"attacks_blocked": 0, "since": COUNTING_SINCE, "resets": []}
 
 
 def _bump_counter():
     state = _load_counter()
     state["attacks_blocked"] += 1
     state.setdefault("since", COUNTING_SINCE)
+    state.setdefault("resets", [])
     COUNTER_FILE.write_text(json.dumps(state), encoding="utf-8")
+    return state
+
+
+def reset_counter(since, reason):
+    """Start the count again, on the record.
+
+    A counter that can be quietly zeroed is decoration. This one keeps every
+    reset it has ever had, with the total it discarded and why, and the page
+    shows the date the surviving count runs from.
+    """
+    state = _load_counter()
+    state.setdefault("resets", []).append(
+        {"at": since, "discarded_total": state["attacks_blocked"],
+         "previous_since": state.get("since"), "reason": reason})
+    state["attacks_blocked"] = 0
+    state["since"] = since
+    COUNTER_FILE.write_text(json.dumps(state, indent=1), encoding="utf-8")
     return state
 
 
@@ -122,7 +140,15 @@ def api_explain(payload):
     if current == "canned":
         stored = _canned().get(preset)
         if stored and stored["receipt_sha"] == receipt["receipt_sha"]:
-            return {"ok": True, "receipt": receipt, "mode": "canned", **stored}
+            # A recorded answer still names what produced it. Serving prose with
+            # an empty provenance line would be the one thing worse than not
+            # serving it: an explanation whose origin nobody can state.
+            provenance = json.loads(json.dumps(stored["provenance"]))
+            provenance["requested"] = dict(provenance.get("requested") or {},
+                                           path="canned")
+            provenance["recorded"] = True
+            return {"ok": True, "receipt": receipt, "mode": "canned",
+                    **dict(stored, provenance=provenance)}
         return {"ok": True, "receipt": receipt, "mode": "canned",
                 "source": "template", "attempts": [],
                 "explanation": render.render(receipt),
@@ -197,7 +223,17 @@ def api_sabotage():
     return {"available": False}
 
 
+def api_rejected():
+    """A real refused answer, recorded. Shown labelled, never as if it were live."""
+    stored = _canned().get("_rejected_example")
+    if not stored:
+        return {"available": False}
+    return dict(stored, available=True,
+                note="recorded example — a real answer refused against its receipt")
+
+
 ROUTES_GET = {"/api/state": lambda: api_state(),
+              "/api/rejected": lambda: api_rejected(),
               "/api/attacks": lambda: api_attacks(),
               "/api/sabotage": lambda: api_sabotage()}
 ROUTES_POST = {"/api/evaluate": api_evaluate, "/api/explain": api_explain,

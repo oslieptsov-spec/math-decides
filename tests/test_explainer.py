@@ -125,6 +125,31 @@ class Validation(unittest.TestCase):
         answer["summary"] = "the defensive factor is 1.7"
         self.assertIn("NUMBER_NOT_IN_RECEIPT", self.codes(answer))
 
+    def test_a_reason_attached_to_the_wrong_output(self):
+        """Caught in a screenshot, not by 105 tests.
+
+        The status field said WITHHELD_MISSING_DECLARED_LAW and the sentence
+        beside it said no closing relation exists. Both statuses were echoed
+        correctly; the prose still told the reader the output could never be
+        released. A reader believes the sentence.
+        """
+        answer = copy.deepcopy(self.answer)
+        answer["summary"] = ("liquidation_risk is withheld because no closing "
+                             "relation exists.")
+        self.assertIn("REASON_MISATTRIBUTED", self.codes(answer))
+
+    def test_a_reason_on_its_own_output_is_accepted(self):
+        answer = copy.deepcopy(self.answer)
+        answer["summary"] = ("defensive_factor is withheld because no closing "
+                             "relation exists; fill_price is withheld until the "
+                             "missing laws are declared.")
+        self.assertNotIn("REASON_MISATTRIBUTED", self.codes(answer))
+
+    def test_prose_naming_no_output_is_left_alone(self):
+        answer = copy.deepcopy(self.answer)
+        answer["summary"] = "Some outputs are withheld until the missing laws are declared."
+        self.assertNotIn("REASON_MISATTRIBUTED", self.codes(answer))
+
     def test_missing_field(self):
         answer = copy.deepcopy(self.answer)
         del answer["unlock"]
