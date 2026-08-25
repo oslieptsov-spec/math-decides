@@ -12,3 +12,9 @@ receipt:
 
 sweep:
 	python3 tools/sweep.py --history
+
+calibrate:
+	python3 tools/calibrate.py $(RUNS)
+
+explain:
+	python3 -m explainer $(EXAMPLE)
