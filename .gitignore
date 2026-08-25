@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+*.key
+
+# Private planning documents — strategy and internal context, never published.
+/gtc-berlin-demo.md
+.gtc-berlin-demo.v*.bak
+
+# Raw recordings before the manual media sweep.
+/media/raw/

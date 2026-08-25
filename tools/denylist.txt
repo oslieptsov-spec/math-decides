@@ -1,0 +1,22 @@
+# Forbidden strings. Case-insensitive, one ERE pattern per line.
+# Checked against: staged diff (pre-commit), working tree, full git history,
+# file names, and the commit author address.
+#
+# OWNER: extend with the internal vocabulary — method names, server paths,
+# internal file names, hostnames, namespaces, config names.
+
+# --- organisation and contacts ---
+saa[- ]?alliance
+@saa-alliance\.com
+\bSAA\b
+
+# --- internal vocabulary (seed, extend) ---
+fitted[- ]control
+\bV10\b
+батарейн
+battery doctrine
+
+# --- secrets ---
+nvapi-[A-Za-z0-9_-]{8,}
+AIza[0-9A-Za-z_-]{30,}
+-----BEGIN [A-Z ]*PRIVATE KEY-----

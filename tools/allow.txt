@@ -1,0 +1,7 @@
+# Allowed exceptions: <path-substring>::<ERE pattern>
+# The one permitted mention is the Inspiration section of the README.
+README.md::\bSAA\b
+README.md::saa[- ]?alliance
+# The sweep's own files necessarily contain the patterns they look for.
+tools/denylist.txt::.*
+tools/allow.txt::.*

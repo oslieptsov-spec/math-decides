@@ -1,0 +1,13 @@
+#!/bin/sh
+# Blocks a commit carrying a work address in its authorship, or any denylisted
+# string in the staged content. Both checks read the same denylist.
+set -e
+ROOT=$(git rev-parse --show-toplevel)
+
+EMAIL=$(git config user.email || true)
+if [ -z "$EMAIL" ]; then
+  echo "pre-commit: user.email is not set in this repository." >&2
+  exit 1
+fi
+python3 "$ROOT/tools/sweep.py" --email "$EMAIL"
+python3 "$ROOT/tools/sweep.py" --staged
