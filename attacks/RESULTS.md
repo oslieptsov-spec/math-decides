@@ -46,7 +46,8 @@ Three places, and the difference matters more than the total.
 | 17 | negative order size | input | schema | `NOT_POSITIVE` |
 | 18 | unknown scenario | input | schema | `UNKNOWN_SCENARIO` |
 | 19 | non-numeric market parameter | input | schema | `NOT_A_NUMBER` |
-| 20 | withheld output declared ready | model | post-validator | `STATUS_MISMATCH` |
+| 20 | **withheld output declared ready** | model | **post-validator** | `STATUS_MISMATCH` |
+| | *without the post-validator this one reaches the consumer with a withheld output marked ready* | | | |
 | 21 | computed output declared withheld | model | post-validator | `STATUS_MISMATCH` |
 | 22 | the two withheld statuses swapped | model | post-validator | `STATUS_MISMATCH` |
 | 23 | value invented for a lawless output | model | post-validator | `NUMBER_NOT_IN_RECEIPT` |
@@ -59,8 +60,15 @@ Three places, and the difference matters more than the total.
 | 30 | an output omitted from the answer | model | post-validator (expected schema) | `OUTPUT_OMITTED` |
 | | *the decoder pins array length at a real endpoint; the suite reaches the post-validator behind it* | | | |
 | 31 | empty answer within the token budget | model | post-validator | `EMPTY_OR_UNPARSEABLE_ANSWER` |
-| 32 | adversarial on both attempts | model | post-validator | `STATUS_MISMATCH` |
+| 32 | **adversarial on both attempts** | model | **post-validator** | `STATUS_MISMATCH` |
+| | *without the post-validator this one reaches the consumer with a withheld output marked ready* | | | |
 | | *repair refused too; the deterministic renderer answers* | | | |
+
+The two rows in bold are the ones to read. Both put `defensive_factor` — the
+output for which no closing relation exists — in front of a consumer as ready,
+and both are stopped only by the post-validator. An output that cannot be
+computed by any declaration, released because a model said so, is the failure
+this whole architecture exists to make impossible.
 
 ## Negative control
 

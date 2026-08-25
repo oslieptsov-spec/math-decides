@@ -2,6 +2,8 @@
 
 HEADER = "| # | attack | surface | blocked by | evidence |"
 RULE = "|---|--------|---------|------------|----------|"
+RELEASE_NOTE = ("without the post-validator this one reaches the consumer with "
+                "a withheld output marked ready")
 
 
 def _cell(text):
@@ -15,8 +17,14 @@ def table(results):
         if result["blocked"] and result["observed"] != result["expected"]:
             blocked_by += f" (expected {result['expected']})"
         evidence = ", ".join(f"`{e}`" for e in result["evidence"])
-        lines.append(f"| {index} | {_cell(result['title'])} | {result['surface']} "
+        title = _cell(result["title"])
+        if result.get("releases_without_guardrail"):
+            title = f"**{title}**"
+            blocked_by = f"**{blocked_by}**"
+        lines.append(f"| {index} | {title} | {result['surface']} "
                      f"| {blocked_by} | {evidence} |")
+        if result.get("releases_without_guardrail"):
+            lines.append(f"| | *{RELEASE_NOTE}* | | | |")
         if result.get("note"):
             lines.append(f"| | *{_cell(result['note'])}* | | | |")
     return "\n".join(lines)
@@ -52,6 +60,12 @@ Three places, and the difference matters more than the total.
   the only one the negative control can switch off.
 
 {table(guarded)}
+
+The two rows in bold are the ones to read. Both put `defensive_factor` — the
+output for which no closing relation exists — in front of a consumer as ready,
+and both are stopped only by the post-validator. An output that cannot be
+computed by any declaration, released because a model said so, is the failure
+this whole architecture exists to make impossible.
 
 ## Negative control
 

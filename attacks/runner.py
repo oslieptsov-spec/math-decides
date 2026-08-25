@@ -92,8 +92,13 @@ def run_model_case(case, post_validation=True):
             "receipt_sha": result["receipt_sha"]}
 
 
-def run(post_validation=True):
-    """Every case. Input cases are unaffected by the guardrail switch."""
+def run(post_validation=True, mark_releases=None):
+    """Every case. Input cases are unaffected by the guardrail switch.
+
+    `mark_releases` carries the ids that silently release under the negative
+    control, so the guarded table can point at them. A case that is blocked
+    today and would release without the validator is the one worth reading.
+    """
     results = []
     for case in cases.ALL_CASES:
         if case["surface"] == "input":
@@ -101,8 +106,15 @@ def run(post_validation=True):
         else:
             outcome = run_model_case(case, post_validation=post_validation)
         results.append({k: case[k] for k in ("id", "title", "surface", "expected")}
-                       | {"note": case.get("note")} | outcome)
+                       | {"note": case.get("note"),
+                          "releases_without_guardrail": case["id"] in (mark_releases or ())}
+                       | outcome)
     return results
+
+
+def releasing_ids(sabotaged):
+    """Cases that put a withheld output in front of a consumer as ready."""
+    return {r["id"] for r in sabotaged if r["silently_released"]}
 
 
 def summarise(results):

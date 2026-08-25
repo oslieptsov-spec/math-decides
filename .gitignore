@@ -8,5 +8,9 @@ __pycache__/
 /gtc-berlin-demo.md
 .gtc-berlin-demo.v*.bak
 
+# Live counter state. The seed lives in the code; the running total does not
+# belong in version control, and it is never reset quietly.
+/web/counter.json
+
 # Raw recordings before the manual media sweep.
 /media/raw/

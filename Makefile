@@ -27,3 +27,9 @@ sabotage:
 
 results:
 	python3 -m attacks --write
+
+ui:
+	python3 -m web
+
+record:
+	python3 tools/record.py

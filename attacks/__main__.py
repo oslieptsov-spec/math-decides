@@ -9,11 +9,12 @@ RESULTS = Path(__file__).resolve().parent / "RESULTS.md"
 
 def main(argv):
     sabotage = "--sabotage" in argv
-    guarded = runner.run(post_validation=True)
-    guarded_summary = runner.summarise(guarded)
 
     if "--write" in argv or "--markdown" in argv:
         sabotaged = runner.run(post_validation=False)
+        guarded = runner.run(post_validation=True,
+                             mark_releases=runner.releasing_ids(sabotaged))
+        guarded_summary = runner.summarise(guarded)
         text = report.markdown(guarded, sabotaged, guarded_summary,
                                runner.summarise(sabotaged))
         if "--write" in argv:
@@ -23,7 +24,7 @@ def main(argv):
             print(text)
         return 0
 
-    results = runner.run(post_validation=False) if sabotage else guarded
+    results = runner.run(post_validation=not sabotage)
     summary = runner.summarise(results)
     if sabotage:
         print("!! post-validation disabled — failure-mode demonstration\n")

@@ -1,0 +1,152 @@
+{
+ "declared-laws": {
+  "receipt_sha": "19926a969678466e90114329f0b40ce9f5cada832df10cc23060db55375ea789",
+  "explanation": {
+   "summary": "The engine computed three outputs: fill_price with a value of 102.57 price, liquidation_risk with a value of 0.44 probability, and slippage_bps with a value of 6.60 bps. The output defensive_factor remains withheld because no closing relation exists.",
+   "outputs": [
+    {
+     "name": "defensive_factor",
+     "status": "WITHHELD_NO_DECLARED_LAW",
+     "restated_reason": "The output cannot be computed because there is no declared law that provides a closing relation for it, and no such law will ever be declared to unlock it."
+    },
+    {
+     "name": "fill_price",
+     "status": "COMPUTABLE_READY",
+     "restated_reason": "All required laws are declared, so the dependency is closed and the output can be computed."
+    },
+    {
+     "name": "liquidation_risk",
+     "status": "COMPUTABLE_READY",
+     "restated_reason": "All required laws are declared, so the dependency is closed and the output can be computed."
+    },
+    {
+     "name": "slippage_bps",
+     "status": "COMPUTABLE_READY",
+     "restated_reason": "All required laws are declared, so the dependency is closed and the output can be computed."
+    }
+   ],
+   "unlock": [],
+   "unreachable": [
+    "defensive_factor"
+   ],
+   "next_questions": [
+    "Should you define a closing relation for defensive_factor, or decide to exclude it from your scope?",
+    "Do you want to proceed with the computed values for fill_price, liquidation_risk, and slippage_bps?"
+   ]
+  },
+  "source": "model",
+  "attempts": [
+   {
+    "attempt": 1,
+    "findings": []
+   }
+  ],
+  "provenance": {
+   "requested": {
+    "model": "nvidia/nemotron-3-nano-30b-a3b",
+    "base_url": "https://integrate.api.nvidia.com/v1",
+    "path": "api-catalog",
+    "temperature": 0.0,
+    "max_tokens": 900,
+    "key_present": true
+   },
+   "returned": {
+    "model": "nvidia/nemotron-3-nano-30b-a3b",
+    "response_id": "chatcmpl-18d959e1-bd48-42fb-9ae9-969fd397df53",
+    "system_fingerprint": null,
+    "usage": {
+     "prompt_tokens": 963,
+     "completion_tokens": 385,
+     "total_tokens": 1348
+    },
+    "reasoning_returned": false
+   },
+   "generated_at": "2026-08-25T17:35:21+00:00",
+   "reproducible": false,
+   "note": "the endpoint supplies no build identifier; a provider-side model update is visible in behaviour, not in a version"
+  }
+ },
+ "incomplete-laws": {
+  "receipt_sha": "89660faf9eb45a6db0e5b40dd9c8d73239964a4a78c44172dffbfa0ab508bb64",
+  "explanation": {
+   "summary": "The system computed one output, slippage_bps, with a value of 6.59533333334 bps. All other outputs are withheld: fill_price is withheld until the missing laws are declared, and liquidation_risk is withheld because no closing relation exists.",
+   "outputs": [
+    {
+     "name": "defensive_factor",
+     "status": "WITHHELD_NO_DECLARED_LAW",
+     "restated_reason": "The output cannot be computed because no closing relation exists and no laws can release it; declaring further laws will not change this status."
+    },
+    {
+     "name": "fill_price",
+     "status": "WITHHELD_MISSING_DECLARED_LAW",
+     "restated_reason": "The output requires the laws gap_size and book_depth_profile to be declared before it can be computed."
+    },
+    {
+     "name": "liquidation_risk",
+     "status": "WITHHELD_MISSING_DECLARED_LAW",
+     "restated_reason": "The output requires the laws gap_size, panic_multiplier, liquidation_threshold, and book_depth_profile to be declared before it can be computed."
+    },
+    {
+     "name": "slippage_bps",
+     "status": "COMPUTABLE_READY",
+     "restated_reason": "All required laws are declared, so the output can be computed and is ready for use."
+    }
+   ],
+   "unlock": [
+    {
+     "output": "fill_price",
+     "declare": [
+      "gap_size"
+     ]
+    },
+    {
+     "output": "liquidation_risk",
+     "declare": [
+      "gap_size",
+      "panic_multiplier",
+      "liquidation_threshold"
+     ]
+    }
+   ],
+   "unreachable": [
+    "defensive_factor"
+   ],
+   "next_questions": [
+    "Can you declare the missing laws gap_size, panic_multiplier, and liquidation_threshold?",
+    "Do you want to define a closing relation for defensive_factor?",
+    "Should you proceed with computing slippage_bps now that it is ready?"
+   ]
+  },
+  "source": "model",
+  "attempts": [
+   {
+    "attempt": 1,
+    "findings": []
+   }
+  ],
+  "provenance": {
+   "requested": {
+    "model": "nvidia/nemotron-3-nano-30b-a3b",
+    "base_url": "https://integrate.api.nvidia.com/v1",
+    "path": "api-catalog",
+    "temperature": 0.0,
+    "max_tokens": 900,
+    "key_present": true
+   },
+   "returned": {
+    "model": "nvidia/nemotron-3-nano-30b-a3b",
+    "response_id": "chatcmpl-cab4f8f8-3d0f-4804-a9b5-183d297184ca",
+    "system_fingerprint": null,
+    "usage": {
+     "prompt_tokens": 1001,
+     "completion_tokens": 466,
+     "total_tokens": 1467
+    },
+    "reasoning_returned": false
+   },
+   "generated_at": "2026-08-25T17:35:27+00:00",
+   "reproducible": false,
+   "note": "the endpoint supplies no build identifier; a provider-side model update is visible in behaviour, not in a version"
+  }
+ }
+}
