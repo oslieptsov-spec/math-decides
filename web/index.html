@@ -12,7 +12,7 @@
   --mono:ui-monospace,"JetBrains Mono","IBM Plex Mono",SFMono-Regular,Menlo,monospace;
   --sans:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
 }
-*{box-sizing:border-box}
+*{box-sizing:border-box;min-width:0}   /* grid and flex children must not force overflow */
 body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);
      font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
 code,pre,.mono{font-family:var(--mono)}
@@ -63,6 +63,7 @@ select{background:var(--raised);color:var(--text);border:1px solid var(--line);
 .out .name{font-family:var(--mono);font-size:13px}
 .out .val{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:right}
 .out .why{grid-column:1/-1;font-family:var(--mono);font-size:11px;color:var(--faint)}
+.out .why,.unlock,.summary,.reason,.rej,.log div{overflow-wrap:anywhere}
 .status{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.05em;
         padding:2px 7px;border-radius:2px;border:1px solid;margin-left:8px;
         transition:background-color .25s ease,border-color .25s ease}
@@ -141,6 +142,25 @@ dialog::backdrop{background:rgba(5,7,10,.8)}
   section{min-height:0}
   textarea{min-height:150px}
   .readonly-note{display:block}
+}
+/* Narrow: a phone reads this, it does not edit on it. Nothing may push the
+   page sideways — a horizontal scrollbar on a post opened from a phone reads
+   as a broken page before a word of it is read. */
+@media (max-width:560px){
+  header{padding:10px 14px;gap:8px 12px}
+  header .spacer{display:none}
+  .brand,.tagline,.counter{font-size:12px}
+  section{padding:12px 14px}
+  .out{grid-template-columns:1fr;gap:4px}
+  .out .name{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+  .out .val{text-align:left;color:var(--text)}
+  .status{margin-left:0}
+  textarea{font-size:11px;min-height:120px}
+  .console,footer{padding:12px 14px}
+  .groups{gap:16px}
+  .free input{min-width:0}
+  dialog{width:96%}
+  .dlg-body .case{flex-wrap:wrap;gap:4px 10px}
 }
 .readonly-note{display:none;color:var(--faint);font-size:11px;margin-bottom:8px}
 </style>
@@ -397,7 +417,8 @@ async function showRejected(){
   loadPreset();
   renderExplanation({...rec, mode: 'recorded'});
   $('#explanation').insertAdjacentHTML('afterbegin',
-    `<div class="rej"><b>recorded example</b>${esc(rec.note)}</div>`);
+    `<div class="rej"><b>recorded example</b>a real answer refused against its
+       receipt, replayed here so the frame does not depend on catching one live</div>`);
 }
 
 async function loadGroups(){
