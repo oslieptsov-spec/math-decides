@@ -108,12 +108,20 @@ def main():
                 continue
 
         if mode_history:
+            # Track the file each diff line belongs to, otherwise the allow-list
+            # cannot be applied and the sweep trips over its own denylist.
+            current = "<unknown>"
             for n, line in enumerate(git("log", "--all", "-p", "--no-color").splitlines(), 1):
-                if not line.startswith(("+", "-")):
+                if line.startswith("diff --git "):
+                    current = line.rsplit(" b/", 1)[-1]
+                    continue
+                if line.startswith(("+++", "---", "@@")) or not line.startswith(("+", "-")):
+                    continue
+                if allowed(allow, current, line):
                     continue
                 for rx in rules:
                     if rx.search(line):
-                        hits.append(("<git history>", n, line.strip()[:160]))
+                        hits.append((f"<history> {current}", n, line.strip()[:160]))
                         break
 
     if hits:
