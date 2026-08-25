@@ -18,7 +18,10 @@ served as data; there is no live path that disables the post-validator.
 The counter never resets quietly. It carries the date it started counting from,
 and that date is published next to it.
 """
+import errno
 import json
+import os
+import socket
 import time
 from collections import defaultdict, deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -33,6 +36,9 @@ COUNTER_FILE = ROOT / "counter.json"
 CANNED_FILE = ROOT / "canned.json"
 SABOTAGE_FILE = ROOT / "sabotage.json"
 
+# 7690 after the accent colour, #76B900. Off every default any other tool
+# claims, so the demo does not fight a stray dev server for its port.
+DEFAULT_PORT = 7690
 COUNTING_SINCE = "2026-08-25"
 RATE_LIMIT = (60, 60.0)          # requests per window, window in seconds
 MAX_BODY = 64 * 1024
@@ -235,6 +241,31 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(200, handler(payload))
 
 
-def serve(host="127.0.0.1", port=8080):
+def free_port(host, start, attempts=20):
+    """The first free port at or after `start`."""
+    for candidate in range(start, start + attempts):
+        with socket.socket() as probe:
+            probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                probe.bind((host, candidate))
+                return candidate
+            except OSError:
+                continue
+    raise SystemExit(f"no free port in {start}..{start + attempts - 1}")
+
+
+def serve(host="127.0.0.1", port=None, auto=True):
+    """Serve the page. Busy ports are reported, not silently worked around."""
+    port = int(port or os.environ.get("GATE_PORT") or DEFAULT_PORT)
+    try:
+        httpd = ThreadingHTTPServer((host, port), Handler)
+    except OSError as exc:
+        if exc.errno != errno.EADDRINUSE or not auto:
+            raise
+        moved = free_port(host, port + 1)
+        print(f"port {port} is busy; using {moved} instead "
+              f"(pin one with --port or GATE_PORT)")
+        httpd = ThreadingHTTPServer((host, moved), Handler)
+        port = moved
     print(f"gate ui on http://{host}:{port}  (mode: {mode()})")
-    ThreadingHTTPServer((host, port), Handler).serve_forever()
+    httpd.serve_forever()

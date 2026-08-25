@@ -29,7 +29,7 @@ results:
 	python3 -m attacks --write
 
 ui:
-	python3 -m web
+	python3 -m web --port $(or $(PORT),7690)
 
 record:
 	python3 tools/record.py
