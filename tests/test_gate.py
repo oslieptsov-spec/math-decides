@@ -75,6 +75,8 @@ class Statuses(unittest.TestCase):
 
 class Determinism(unittest.TestCase):
     def test_same_input_same_receipt(self):
+        """Within one runtime and architecture. Cross-architecture equality of
+        digests is expected but unverified, and is therefore not claimed."""
         a, b = receipt_for("declared-laws"), receipt_for("declared-laws")
         self.assertEqual(a["receipt_sha"], b["receipt_sha"])
         self.assertEqual(canonical.dumps(a), canonical.dumps(b))

@@ -5,6 +5,13 @@ serialisation. Two structurally identical receipts must produce one hash on
 any machine, so this module fixes every degree of freedom JSON leaves open:
 key order, separators, non-ASCII escaping, and float precision.
 
+The claim this buys is scoped. Receipts are reproducible bit for bit within a
+runtime and architecture, verified across processes and hash seeds. Equality of
+digests across architectures is not claimed here — it is expected, since every
+operation involved is IEEE-754 and the rounding is explicit, but expectation is
+not evidence. tools/arch_receipts.py emits the digests to compare, and the check
+belongs on the second architecture, not in this docstring.
+
 Float precision is the one that actually bites. Arithmetic that differs in
 the last bit — a different libm, a reordered sum — would otherwise produce a
 different receipt for the same input. Values are rounded to a fixed number of
