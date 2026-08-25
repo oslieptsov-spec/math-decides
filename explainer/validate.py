@@ -37,6 +37,41 @@ REASON_PHRASES = {
 }
 
 
+def _mentioned_laws(text):
+    return {law for law in domain.LAWS if law in text}
+
+
+def _check_laws(findings, text, receipt, owner=None):
+    """A law named in prose must be one the output it is attached to requires.
+
+    The unlock list is already compared structurally, but prose is free to name
+    laws too, and nothing was checking those. A sentence can hand the reader a
+    law that would release an output when it would not — or, worse, name one
+    beside an output no law can release.
+
+    The rule refuses a true sentence as readily as a false one: "declaring
+    gap_size will not release defensive_factor" is accurate and still refused,
+    because a lawless output has no business appearing next to a law name at
+    all. Fail-closed costs a phrasing; the alternative costs the guarantee.
+    """
+    laws = _mentioned_laws(text)
+    if not laws:
+        return
+    if owner is not None:
+        named, allowed = owner, set(receipt["outputs"][owner]["requires"])
+    else:
+        mentioned = [name for name in receipt["outputs"] if name in text]
+        if len(mentioned) != 1:
+            return
+        named = mentioned[0]
+        allowed = set(receipt["outputs"][named]["requires"])
+    stray = laws - allowed
+    if stray:
+        _finding(findings, "LAW_MISATTRIBUTED",
+                 f"{named}: requires {sorted(allowed) or 'no laws at all'}, prose "
+                 f"names {sorted(stray)} in {text[:70]!r}")
+
+
 def _implied_statuses(text):
     lowered = text.lower()
     return {status for status, phrases in REASON_PHRASES.items()
@@ -160,16 +195,19 @@ def validate(answer, receipt):
         for hit in numbers.check(text, receipt):
             _finding(findings, hit["code"], f"{hit['token']} in {text[:60]!r}")
 
-    # 6. A reason belongs to the output it is attached to. The status field can
+    # 6. A reason, and any law named beside it, belongs to the output it is
+    #    attached to. The status field can
     #    be right while the sentence beside it explains a different output's
     #    predicament, and a reader believes the sentence.
     for entry in answer["outputs"]:
         if entry.get("name") in receipt["outputs"]:
             for sentence in _sentences(entry.get("restated_reason", "")):
                 _check_reasons(findings, sentence, receipt, owner=entry["name"])
+                _check_laws(findings, sentence, receipt, owner=entry["name"])
     for text in [answer["summary"], *answer["next_questions"]]:
         if isinstance(text, str):
             for sentence in _sentences(text):
                 _check_reasons(findings, sentence, receipt)
+                _check_laws(findings, sentence, receipt)
 
     return findings

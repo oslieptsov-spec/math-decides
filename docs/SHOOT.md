@@ -45,7 +45,13 @@ window, and it never will.
 | 1:15 | `watch it fail without the guardrail` | recorded replay, watermark, silent releases |
 | 1:25 | footer hash chain | `input_hash → receipt_sha → bound explanation` |
 
-Deep links for deterministic takes: `#rejected` and `#sabotage`.
+Deep links for deterministic takes: `#rejected`, `#sabotage`, and `?tour=N` for
+any step of the guided walk. `?tour=0` skips state 0 and lands on the full
+screen — that is the one to use for README stills.
+
+The guided tour is this script made interactive: the six cards are these six
+scenes. If a scene changes here, change the card with it, or the video and the
+page will start telling different stories.
 
 ## 4. After the take
 

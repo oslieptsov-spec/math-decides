@@ -150,6 +150,23 @@ class Validation(unittest.TestCase):
         answer["summary"] = "Some outputs are withheld until the missing laws are declared."
         self.assertNotIn("REASON_MISATTRIBUTED", self.codes(answer))
 
+    def test_a_law_named_for_an_output_that_does_not_require_it(self):
+        answer = copy.deepcopy(self.answer)
+        answer["summary"] = "Declare panic_multiplier and fill_price computes."
+        self.assertIn("LAW_MISATTRIBUTED", self.codes(answer))
+
+    def test_a_law_named_beside_a_lawless_output(self):
+        """Refused even when the sentence is true: no law belongs next to it."""
+        answer = copy.deepcopy(self.answer)
+        answer["summary"] = ("Declaring gap_size will not release "
+                             "defensive_factor.")
+        self.assertIn("LAW_MISATTRIBUTED", self.codes(answer))
+
+    def test_the_right_law_for_the_right_output_is_accepted(self):
+        answer = copy.deepcopy(self.answer)
+        answer["summary"] = "Declare gap_size and fill_price computes."
+        self.assertNotIn("LAW_MISATTRIBUTED", self.codes(answer))
+
     def test_missing_field(self):
         answer = copy.deepcopy(self.answer)
         del answer["unlock"]

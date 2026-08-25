@@ -283,7 +283,10 @@ class Handler(BaseHTTPRequestHandler):
         return length <= DRAIN_CAP
 
     def do_GET(self):
-        if self.path in ("/", "/index.html"):
+        # The page takes query strings — ?tour=N addresses a step. The API does
+        # not: routes are matched whole, so no query can be read as a switch.
+        page_path = self.path.partition("?")[0]
+        if page_path in ("/", "/index.html"):
             page = (ROOT / "index.html").read_bytes()
             return self._send(200, page, "text/html; charset=utf-8")
         handler = ROUTES_GET.get(self.path)

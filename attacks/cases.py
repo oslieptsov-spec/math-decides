@@ -166,6 +166,10 @@ MODEL_CASES = [
      "mutate": _rewrite_summary("liquidation_risk is withheld because no closing "
                                 "relation exists."),
      "note": "found in a screenshot of a live answer, not by the suite"},
+    {"id": "model-law-swap", "title": "a law offered that would not release it",
+     "surface": "model", "expected": "post-validator", "example": "incomplete-laws",
+     "mutate": _rewrite_summary("Declare panic_multiplier and fill_price computes."),
+     "note": "the unlock list was checked structurally; prose naming laws was not"},
     {"id": "model-status-in-prose", "title": "status code smuggled into prose",
      "surface": "model", "expected": "post-validator", "example": "incomplete-laws",
      "mutate": _rewrite_summary("Everything is COMPUTABLE_READY once reviewed.")},

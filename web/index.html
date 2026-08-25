@@ -178,6 +178,41 @@ footer pre{background:var(--raised);border:1px solid var(--line);border-radius:2
            padding:10px;overflow:auto;max-height:280px;font-size:11px;margin:10px 0 0}
 footer .note{color:var(--faint);margin-top:8px}
 
+/* ---- state 0 and the tour -------------------------------------------- */
+.hero0{position:fixed;inset:0;z-index:80;background:var(--bg);display:flex;
+       align-items:center;justify-content:center;padding:24px}
+.hero0 .inner{max-width:640px}
+.hero0 .mark{font-family:var(--mono);font-size:13px;letter-spacing:.02em;color:var(--muted)}
+.hero0 .mark b{color:var(--accent)}
+.hero0 h1{margin:14px 0 0;font-size:30px;line-height:1.25;font-weight:500;letter-spacing:-.01em}
+.hero0 .why{margin:16px 0 0;color:var(--muted);font-size:14px;max-width:58ch}
+.hero0 .why b{color:var(--text);font-weight:500}
+.hero0 .acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
+.hero0 .acts .btn{padding:9px 16px;font-size:13px}
+.hero0 .foot{margin-top:22px;color:var(--faint);font-size:11.5px;font-family:var(--mono)}
+
+.tour-dim{position:fixed;inset:0;z-index:50;background:rgba(6,8,11,.78)}
+.lit{z-index:60}
+.pulse{outline:1px solid var(--accent);outline-offset:2px;
+       animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{outline-color:var(--accent)}50%{outline-color:transparent}}
+.spot{outline:1px solid var(--accent);outline-offset:3px;border-radius:2px}
+.tour-card{position:fixed;z-index:70;right:24px;bottom:24px;width:min(420px,calc(100% - 48px));
+           background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);
+           border-radius:2px;padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+.tour-card .n{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--faint)}
+.tour-card h3{margin:6px 0 6px;font-size:15px;font-weight:500}
+.tour-card p{margin:0;color:var(--muted);font-size:13px}
+.tour-card .acts{display:flex;gap:8px;margin-top:12px;align-items:center}
+.tour-card .acts .spacer{flex:1}
+.tour-band{background:#16200a;border:1px solid #2f4a12;border-radius:2px;padding:10px 12px;
+           margin-bottom:12px;font-size:13px;color:var(--text)}
+.tour-band a{color:var(--accent)}
+@media (max-width:700px){
+  .tour-card{left:12px;right:12px;bottom:12px;width:auto}
+  .hero0 h1{font-size:23px}
+}
+
 dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);
        border-radius:3px;max-width:760px;width:92%;padding:0}
 dialog::backdrop{background:rgba(5,7,10,.8)}
@@ -226,6 +261,21 @@ dialog::backdrop{background:rgba(5,7,10,.8)}
 </head>
 <body>
 
+<div class="hero0" id="hero0">
+  <div class="inner">
+    <div class="mark">math<b>·</b>decides</div>
+    <h1>AI may explain. Math decides.</h1>
+    <p class="why"><b>Why it matters:</b> agentic systems fail the moment the model can
+      decide. A deterministic gate issues a receipt; the model may narrate it and can
+      never change it. Try to break that boundary.</p>
+    <div class="acts">
+      <button class="btn primary" id="hero-tour">▶ Walk me through it</button>
+      <button class="btn" id="hero-skip">Skip — show everything</button>
+    </div>
+    <p class="foot">six steps, about ninety seconds · exit at any point</p>
+  </div>
+</div>
+
 <header>
   <span class="brand">math<b>·</b>decides</span>
   <span class="tagline">AI may explain. Math decides.</span>
@@ -259,7 +309,7 @@ dialog::backdrop{background:rgba(5,7,10,.8)}
 </div>
 
 <main>
-  <section>
+  <section id="panel-1">
     <h2><span class="step">1 · Declare</span></h2>
     <p class="sub"><span class="lede">You declare the data and the
       <span class="term" data-tip="A closing relation the caller declares. Without it the outputs that depend on it cannot be computed." title="A closing relation the caller declares. Without it the outputs that depend on it cannot be computed.">laws</span> that close it.</span></p>
@@ -275,14 +325,14 @@ dialog::backdrop{background:rgba(5,7,10,.8)}
     <textarea id="request" spellcheck="false"></textarea>
   </section>
 
-  <section class="hero">
+  <section class="hero" id="panel-2">
     <h2><span class="step">2 · The math decides</span></h2>
     <p class="sub"><span class="lede">Deterministic <span class="term" data-tip="The gate's machine-readable verdict: every output, its status, why, and a hash over the whole thing." title="The gate's machine-readable verdict: every output, its status, why, and a hash over the whole thing.">receipt</span>: what computes,
       what is refused, why.</span> The receipt is the law.</p>
     <div id="receipt"><p class="empty">no receipt yet — press validate</p></div>
   </section>
 
-  <section>
+  <section id="panel-3">
     <h2><span class="step">3 · The AI explains</span></h2>
     <p class="sub"><span class="lede">Nemotron narrates the receipt — read-only.</span>
       May describe. May not decide.</p>
@@ -304,7 +354,7 @@ dialog::backdrop{background:rgba(5,7,10,.8)}
   <span class="seal" id="r-seal"></span>
 </div>
 
-<div class="bridge">
+<div class="bridge" id="bridge">
   <h3>Now try to make the AI lie about that receipt.</h3>
   <p><b id="r-attacks">33</b> attacks, three walls — each column is a different reason the
     boundary holds, and only the third one is a check that could ever be switched off.</p>
@@ -346,6 +396,9 @@ dialog::backdrop{background:rgba(5,7,10,.8)}
   <div class="dlg-foot"><button class="btn" id="dlg-close">close</button></div>
 </dialog>
 
+<script>
+const TOUR_REPO = "https://github.com/oslieptsov-spec/open-pattern-with-interactive-adversarial-console";
+</script>
 <script>
 const $ = s => document.querySelector(s);
 const api = (path, body) => fetch(path, body ? {
@@ -442,7 +495,7 @@ function renderReceipt(receipt){
     const value = o.value === null ? '—'
       : (typeof o.value === 'number' ? o.value.toFixed(6) : o.value);
     const missing = o.missing_laws.length ? 'missing: ' + o.missing_laws.join(', ') : o.reason_code;
-    return `<div class="out">
+    return `<div class="out" id="out-${name}">
       <div class="name">${esc(name)}<span class="status" data-s="${o.status}">${o.status}</span></div>
       <div class="val">${esc(value)}${o.unit ? ' <span style="color:var(--faint)">'+esc(o.unit)+'</span>' : ''}</div>
       <div class="why">${esc(missing)}</div></div>`;
@@ -619,6 +672,104 @@ $('#expand').addEventListener('click', () => { $('#canonical').hidden = !$('#can
 $('#dlg-close').addEventListener('click', () => $('#dlg').close());
 $('#sabotage').addEventListener('click', showSabotage);
 
+
+/* ---- the tour --------------------------------------------------------- */
+/* The interactive form of the ninety-second script: press something, watch the
+   screen change, then read why it changed. The cards are that script's scenes,
+   which is why they are short — the screen is doing the explaining. */
+
+const TOUR = [
+  {sel:'#panel-1', pulse:'#run', advanceOn:'#run',
+   title:'The caller declares — and forgets two laws',
+   body:'Data, plus the closing relations that make outputs computable. Two of the four laws are missing here. Press validate.'},
+  {sel:'#panel-2', spot:'#out-defensive_factor',
+   title:'The math decides',
+   body:'One output computed, three refused — and one of them for a different reason than the others. defensive_factor has no closing relation at all.'},
+  {sel:'#panel-3', spot:'#provline',
+   title:'Now, and only now, the model',
+   body:'The receipt was sealed before any model ran. Nemotron restates it and cannot change a status; the provenance line names exactly what produced the words.'},
+  {sel:'#panel-2', preset:'declared-laws',
+   title:'Now declare every law that exists',
+   body:'Three outputs compute. One does not — and never will. No declaration releases it, because no law for it exists. That is the difference between refused and out of scope.'},
+  {sel:'#bridge', pulse:'[data-attack="model-release"]', advanceOn:'[data-attack="model-release"]',
+   title:'Now try to make the AI lie about that receipt',
+   body:'Three walls, three different reasons the boundary holds. Run one: the log shows which wall stopped it, and that the receipt digest never moved.'},
+  {sabotage:true,
+   title:'And what it looks like without the guardrail',
+   body:'The recorded negative control: attacks that reach the consumer, and a withheld output silently released.'}
+];
+
+let tourAt = -1;
+let tourHandler = null;
+
+function tourClear(){
+  document.querySelectorAll('.lit,.pulse,.spot').forEach(el =>
+    el.classList.remove('lit','pulse','spot'));
+  if (tourHandler){ document.removeEventListener('click', tourHandler, true); tourHandler = null; }
+}
+
+function tourEnd(){
+  tourClear();
+  document.querySelector('.tour-dim')?.remove();
+  document.querySelector('.tour-card')?.remove();
+  document.querySelector('.tour-band')?.remove();
+  $('#dlg').open && $('#dlg').close();
+  tourAt = -1;
+}
+
+async function tourGo(index){
+  tourClear();
+  if (index >= TOUR.length){ tourEnd(); return; }
+  tourAt = index;
+  const step = TOUR[index];
+
+  if (step.preset){
+    $('#preset').value = step.preset;
+    loadPreset();
+    await validate();
+  }
+
+  if (step.sabotage){
+    document.querySelector('.tour-card')?.remove();
+    document.querySelector('.tour-dim')?.remove();
+    await showSabotage();
+    $('#dlg-body').insertAdjacentHTML('afterbegin',
+      `<div class="tour-band"><b>${esc(step.title)}</b><br>${esc(step.body)}
+         <br><br>Fork it: <a href="${TOUR_REPO}" target="_blank" rel="noopener">${TOUR_REPO.replace('https://','')}</a></div>`);
+    return;
+  }
+
+  if (!document.querySelector('.tour-dim')){
+    document.body.insertAdjacentHTML('beforeend', '<div class="tour-dim"></div>');
+  }
+  const target = document.querySelector(step.sel);
+  target?.classList.add('lit');
+  if (step.spot) document.querySelector(step.spot)?.classList.add('spot');
+  if (step.pulse) document.querySelector(step.pulse)?.classList.add('pulse');
+
+  let card = document.querySelector('.tour-card');
+  if (!card){
+    document.body.insertAdjacentHTML('beforeend', '<div class="tour-card"></div>');
+    card = document.querySelector('.tour-card');
+  }
+  card.innerHTML = `<div class="n">step ${index + 1} of ${TOUR.length}</div>
+    <h3>${esc(step.title)}</h3><p>${esc(step.body)}</p>
+    <div class="acts"><button class="btn primary" id="t-next">next</button>
+      <span class="spacer"></span>
+      <button class="btn" id="t-exit">exit tour</button></div>`;
+  $('#t-next').onclick = () => tourGo(index + 1);
+  $('#t-exit').onclick = tourEnd;
+
+  if (step.advanceOn){
+    tourHandler = e => {
+      if (e.target.closest(step.advanceOn)) setTimeout(() => tourGo(index + 1), 900);
+    };
+    document.addEventListener('click', tourHandler, true);
+  }
+}
+
+function enterApp(){ $('#hero0').remove(); }
+
 (async function init(){
   loadPreset();
   const state = await api('/api/state');
@@ -627,6 +778,22 @@ $('#sabotage').addEventListener('click', showSabotage);
   $('#mode').textContent = state.mode;
   $('#mode').dataset.mode = state.mode;
   await loadGroups();
+
+  // State 0 is the default: a cold visitor gets one choice, not a wall of data.
+  // ?tour=0 and the deep links skip it — a screenshot and a shared frame should
+  // land on the thing they name.
+  // ?tour=0 skips state 0 entirely; ?tour=N opens the app at step N, which is
+  // how a screenshot or a shared link lands on the frame it names.
+  const params = new URLSearchParams(location.search);
+  const at = params.get('tour');
+  const step = at === null ? null : parseInt(at, 10);
+  // Wire the buttons before anything can remove them: enterApp() deletes the
+  // hero, and reaching for its children afterwards ends the whole init.
+  $('#hero-skip').onclick = () => enterApp();
+  $('#hero-tour').onclick = async () => { enterApp(); await tourGo(0); };
+  if (step !== null || location.hash) enterApp();
+  if (step) { await validate(); await tourGo(step - 1); return; }
+
   // Deep link for the recording, opened before the model is asked anything —
   // the replay does not depend on a live path and should not wait for one.
   if (location.hash === '#sabotage') showSabotage();

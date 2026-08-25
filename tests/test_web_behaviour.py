@@ -216,6 +216,19 @@ class NoRouteDisablesPostValidation(Server):
             self.assertEqual(status, 404, path)
 
 
+class PageRouting(Server):
+    def test_the_page_takes_a_query_string(self):
+        """?tour=N addresses a step; the API's strictness must not reach it."""
+        for path in ("/", "/?tour=2", "/index.html?tour=0"):
+            status, body = self.call("GET", path)
+            self.assertEqual(status, 200, path)
+            self.assertIn("<!doctype html>", str(body)[:80].lower(), path)
+
+    def test_the_api_still_refuses_a_query_string(self):
+        for path in ("/api/state?tour=2", "/api/sabotage?live=1"):
+            self.assertEqual(self.call("GET", path)[0], 404, path)
+
+
 class Limits(Server):
     def test_a_malformed_body_is_refused(self):
         connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=10)

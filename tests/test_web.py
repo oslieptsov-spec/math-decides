@@ -103,10 +103,25 @@ class RateLimit(unittest.TestCase):
 
 
 class Page(unittest.TestCase):
-    def test_the_page_is_one_file_with_no_external_requests(self):
+    def test_the_page_loads_nothing_from_anywhere_else(self):
+        """No external resource. A link the reader may follow is not a request.
+
+        The first version of this test banned the substring https:// outright,
+        which also banned the repository link the tour ends on — the one thing
+        on the page whose whole purpose is to send the reader somewhere else.
+        What must not happen is the page fetching something at load.
+        """
         html = (server.ROOT / "index.html").read_text(encoding="utf-8")
-        for forbidden in ("http://", "https://", "<script src", "<link rel=\"stylesheet\""):
+        for forbidden in ("<script src", '<link rel="stylesheet"', "@import",
+                          "url(http", 'img src="http', "fonts.googleapis",
+                          "fonts.gstatic"):
             self.assertNotIn(forbidden, html, forbidden)
+
+    def test_outbound_links_are_only_the_repository(self):
+        import re
+        html = (server.ROOT / "index.html").read_text(encoding="utf-8")
+        for url in re.findall(r"https?://[^\s\"'<>)]+", html):
+            self.assertIn("github.com/oslieptsov-spec", url, url)
 
     def test_the_mode_chip_has_a_value_for_every_path(self):
         self.assertIn(server.mode(), ("nim", "api-catalog", "canned"))
