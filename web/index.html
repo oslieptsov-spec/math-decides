@@ -110,6 +110,16 @@ select{background:var(--raised);color:var(--text);border:1px solid var(--line);
 .unlock{margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--muted)}
 .unlock div{padding:2px 0}
 .unlock .never{color:var(--grey)}
+/* The structural wall, stated in the artifact rather than only in the prose
+   about it. It belongs next to the seal, not three levels into a JSON dump. */
+.wall{display:inline-flex;align-items:center;gap:7px;margin-top:10px;padding:4px 9px;
+      border:1px dashed var(--line);border-radius:2px;font-family:var(--mono);
+      font-size:10.5px;color:var(--muted);position:relative;cursor:help}
+.wall b{color:var(--accent);font-weight:500;letter-spacing:.03em}
+.wall:hover::after{content:attr(data-tip);position:absolute;left:0;bottom:calc(100% + 6px);
+  z-index:20;width:max-content;max-width:320px;background:var(--raised);color:var(--text);
+  border:1px solid var(--line);border-radius:2px;padding:7px 9px;font-family:var(--sans);
+  font-size:12px;line-height:1.45;box-shadow:0 6px 20px rgba(0,0,0,.5)}
 
 /* ---- explanation ------------------------------------------------------ */
 .provline{display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--faint);
@@ -443,10 +453,21 @@ function renderReceipt(receipt){
     + receipt.unreachable_by_declaration.map(name =>
     `<div class="never">${esc(name)} → no declaration releases it</div>`).join('');
 
+  const untrusted = receipt.untrusted_input || {fields_present: []};
+  const digest = Object.values(untrusted.content_sha256 || {})[0];
+  const wall = untrusted.fields_present.length ? `<div class="wall"
+      data-tip="The request's free text was hashed into this receipt and left there. It is not
+                carried into the model's prompt, so an instruction hidden in it has nothing to
+                travel on. Nothing was filtered — there is no path.">
+      <span>${esc(untrusted.fields_present.join(', '))}:</span>
+      <b>hashed · not forwarded</b>
+      <span style="color:var(--faint)">${short(digest)}</span></div>` : '';
+
   $('#receipt').innerHTML = rows +
     `<div class="unlock">${unlock}</div>
      <div class="sha">receipt_sha <b>${short(receipt.receipt_sha)}</b>
-       <button class="btn" data-copy="${receipt.receipt_sha}">copy</button></div>`;
+       <button class="btn" data-copy="${receipt.receipt_sha}">copy</button></div>
+     ${wall}`;
 
   setResult(receipt);
   $('#ch-input').textContent = short(receipt.input_hash);
