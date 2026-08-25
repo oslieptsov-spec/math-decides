@@ -4,10 +4,14 @@
     python3 tools/counter.py
     python3 tools/counter.py --reset 2026-09-08 --reason "first public run"
 
-A counter that can be quietly zeroed is decoration. Every reset is kept with
-the total it discarded and the reason for it, and the page publishes the date
-the surviving count runs from. Development runs are honest to keep — as long as
-the date says so — and honest to discard, as long as the discard is on record.
+A counter that can be quietly zeroed is decoration. Every reset is kept with the
+total it discarded and the reason for it, and the page publishes the date the
+surviving count runs from. Development runs are honest to keep — as long as the
+date says so — and honest to discard, as long as the discard is on record.
+
+Each increment also records what caused it. That is not bookkeeping for its own
+sake: the count once stood at 33 with no way to say what had incremented it, and
+a number nobody can account for is worth less than no number.
 """
 import json
 import sys

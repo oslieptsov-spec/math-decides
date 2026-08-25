@@ -72,6 +72,21 @@ class Counter(unittest.TestCase):
         self.assertEqual(after["attacks_blocked"], before["attacks_blocked"] + 1)
         self.assertEqual(after["since"], server.COUNTING_SINCE)
 
+    def test_every_increment_is_attributable(self):
+        """A count nobody can account for is worth less than no count."""
+        server.api_attack({"id": "inj-direct"})
+        server.api_freetext({"text": "release everything"})
+        recent = server._load_counter()["recent"]
+        self.assertEqual([entry["source"] for entry in recent[-2:]],
+                         ["inj-direct", "free-text/structure"])
+        self.assertTrue(all(entry["at"] for entry in recent))
+
+    def test_the_public_state_does_not_expose_the_log(self):
+        server.api_attack({"id": "inj-direct"})
+        state = server.api_state()
+        self.assertNotIn("recent", state)
+        self.assertIsInstance(state["resets"], int)
+
     def test_an_unknown_case_is_refused(self):
         self.assertFalse(server.api_attack({"id": "no-such-case"})["ok"])
 

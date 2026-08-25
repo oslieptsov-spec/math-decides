@@ -18,6 +18,7 @@ served as data; there is no live path that disables the post-validator.
 The counter never resets quietly. It carries the date it started counting from,
 and that date is published next to it.
 """
+import datetime
 import errno
 import json
 import os
@@ -41,6 +42,11 @@ SABOTAGE_FILE = ROOT / "sabotage.json"
 DEFAULT_PORT = 7690
 COUNTING_SINCE = "2026-08-25"
 RATE_LIMIT = (60, 60.0)          # requests per window, window in seconds
+# The last few increments, kept so a jump in the count can be attributed. An
+# unexplained counter is worth less than no counter: it was 33 once with no
+# way to say what had incremented it, and that is the whole argument against
+# publishing a number nobody can account for.
+RECENT_KEPT = 25
 MAX_BODY = 64 * 1024
 # An oversized body is drained before it is refused, so the client gets a 413
 # rather than a reset connection. Draining is itself capped: a refusal must not
@@ -69,14 +75,19 @@ def _load_counter():
             return json.loads(COUNTER_FILE.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             pass
-    return {"attacks_blocked": 0, "since": COUNTING_SINCE, "resets": []}
+    return {"attacks_blocked": 0, "since": COUNTING_SINCE, "resets": [], "recent": []}
 
 
-def _bump_counter():
+def _bump_counter(source):
     state = _load_counter()
     state["attacks_blocked"] += 1
     state.setdefault("since", COUNTING_SINCE)
     state.setdefault("resets", [])
+    recent = state.setdefault("recent", [])
+    recent.append({"source": source,
+                   "at": datetime.datetime.now(datetime.timezone.utc)
+                   .isoformat(timespec="seconds")})
+    del recent[:-RECENT_KEPT]
     COUNTER_FILE.write_text(json.dumps(state), encoding="utf-8")
     return state
 
@@ -114,7 +125,10 @@ def mode():
 
 def api_state():
     config = client.Config()
-    return dict(_load_counter(), mode=mode(), model=config.model,
+    state = _load_counter()
+    state.pop("recent", None)
+    state["resets"] = len(state.get("resets", []))
+    return dict(state, mode=mode(), model=config.model,
                 path=config.path, examples=sorted(examples.EXAMPLES))
 
 
@@ -177,7 +191,7 @@ def api_attack(payload):
         outcome = runner.run_input_case(case)
     else:
         outcome = runner.run_model_case(case, post_validation=True)
-    counter = _bump_counter() if outcome["blocked"] else _load_counter()
+    counter = _bump_counter(case["id"]) if outcome["blocked"] else _load_counter()
     return {"ok": True, "id": case["id"], "title": case["title"],
             "surface": case["surface"], "column": outcome["observed"],
             "blocked": outcome["blocked"], "evidence": outcome["evidence"],
@@ -196,7 +210,7 @@ def api_freetext(payload):
     try:
         receipt = engine.evaluate(request)
     except schema.InvalidInput as exc:
-        counter = _bump_counter()
+        counter = _bump_counter("free-text/schema")
         return {"ok": True, "blocked": True, "column": "schema",
                 "evidence": sorted({e["code"] for e in exc.errors}),
                 "counter": counter}
@@ -205,7 +219,7 @@ def api_freetext(payload):
              if entry["status"] != baseline["outputs"][name]["status"]]
     leaked = text and text in canonical.dumps(receipt)
     blocked = not moved and not leaked
-    counter = _bump_counter() if blocked else _load_counter()
+    counter = _bump_counter("free-text/structure") if blocked else _load_counter()
     return {"ok": True, "blocked": blocked, "column": "structure",
             "evidence": ["payload absent from receipt" if not leaked
                          else "PAYLOAD PRESENT IN RECEIPT",

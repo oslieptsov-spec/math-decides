@@ -35,10 +35,42 @@ header .spacer{flex:1}
 .chip[data-mode="nim"]{color:var(--accent);border-color:#2f4a12}
 .chip[data-mode="canned"]{color:var(--amber);border-color:#4a3a12}
 
+/* ---- intro ------------------------------------------------------------ */
+.intro{padding:12px 20px;border-bottom:1px solid var(--line);background:var(--bg)}
+.intro p{margin:0;max-width:96ch}
+.intro .lead{font-size:14.5px}
+.intro .why{margin-top:6px;color:var(--muted);font-size:12.5px}
+.intro .why b{color:var(--text);font-weight:500}
+details.how{margin-top:8px}
+details.how summary{cursor:pointer;color:var(--accent);font-family:var(--mono);
+                    font-size:11.5px;letter-spacing:.03em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how summary::before{content:"▸ ";color:var(--faint)}
+details.how[open] summary::before{content:"▾ "}
+details.how .body{margin-top:8px;color:var(--muted);font-size:12.5px;max-width:92ch}
+details.how .body p{margin:0 0 6px}
+
+/* glossary */
+.term{border-bottom:1px dotted var(--faint);cursor:help;position:relative}
+.term:hover::after{content:attr(data-tip);position:absolute;left:0;top:calc(100% + 6px);
+  z-index:20;width:max-content;max-width:280px;background:var(--raised);color:var(--text);
+  border:1px solid var(--line);border-radius:2px;padding:7px 9px;font-family:var(--sans);
+  font-size:12px;line-height:1.45;font-style:normal;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+
 /* ---- panels ----------------------------------------------------------- */
 main{display:grid;grid-template-columns:minmax(280px,1fr) minmax(360px,1.35fr) minmax(300px,1fr);
      gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
-section{background:var(--bg);padding:14px 16px;min-height:340px;display:flex;flex-direction:column}
+section{background:var(--bg);padding:14px 16px;min-height:340px;display:flex;
+        flex-direction:column;position:relative}
+/* Direction between the panels: the screen should read as a sequence, not as
+   three boxes that happen to sit next to each other. */
+main section+section::before{content:"→";position:absolute;left:-11px;top:22px;z-index:5;
+  width:21px;height:21px;line-height:19px;text-align:center;font-family:var(--mono);
+  font-size:12px;color:var(--faint);background:var(--bg);border:1px solid var(--line);
+  border-radius:50%}
+section.hero+section::before{background:var(--bg)}
+h2 .step{color:var(--accent)}
+.sub .lede{color:var(--muted);font-style:normal}
 section.hero{background:var(--panel)}
 h2{margin:0 0 2px;font-family:var(--mono);font-size:11px;letter-spacing:.12em;
    text-transform:uppercase;color:var(--faint);font-weight:600}
@@ -93,6 +125,21 @@ select{background:var(--raised);color:var(--text);border:1px solid var(--line);
 .reason{font-size:12px;color:var(--muted);padding:5px 0;border-bottom:1px solid var(--line)}
 .reason b{font-family:var(--mono);font-size:12px;color:var(--text);font-weight:500}
 
+/* ---- result banner ---------------------------------------------------- */
+.result{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;
+        padding:11px 20px;background:var(--raised);border-bottom:1px solid var(--line);
+        border-left:3px solid var(--accent);font-family:var(--mono);font-size:12.5px}
+.result .tag{color:var(--accent);letter-spacing:.08em}
+.result .math{color:var(--text)}
+.result .ai{color:var(--muted)}
+.result .ai.refused{color:var(--amber)}
+.result .seal{color:var(--faint);margin-left:auto}
+
+/* ---- bridge ----------------------------------------------------------- */
+.bridge{padding:14px 20px 0;background:var(--panel)}
+.bridge h3{margin:0;font-size:15px;font-weight:500}
+.bridge p{margin:4px 0 0;color:var(--muted);font-size:12.5px}
+
 /* ---- console ---------------------------------------------------------- */
 .console{padding:14px 20px;background:var(--panel);border-bottom:1px solid var(--line)}
 .groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:12px}
@@ -139,6 +186,8 @@ dialog::backdrop{background:rgba(5,7,10,.8)}
 
 @media (max-width:900px){
   main{grid-template-columns:1fr}
+  main section+section::before{content:"↓";left:16px;top:-11px}
+  .result .seal{margin-left:0}
   section{min-height:0}
   textarea{min-height:150px}
   .readonly-note{display:block}
@@ -176,30 +225,57 @@ dialog::backdrop{background:rgba(5,7,10,.8)}
   <span class="chip" id="mode" data-mode="canned">mode</span>
 </header>
 
+<div class="intro">
+  <p class="lead">A risk engine that refuses to answer without <span class="term" data-tip="A closing relation the caller declares. Without it the outputs that depend on it cannot be computed." title="A closing relation the caller declares. Without it the outputs that depend on it cannot be computed.">declared laws</span> —
+    and an AI that can only explain the <span class="term" data-tip="The gate's machine-readable verdict: every output, its status, why, and a hash over the whole thing." title="The gate's machine-readable verdict: every output, its status, why, and a hash over the whole thing.">receipt</span>, never override it.
+    Try to break that boundary below.</p>
+  <p class="why"><b>Why it matters:</b> agentic systems fail the moment the model can decide.
+    This pattern makes that structurally impossible — fork it for your domain.</p>
+  <details class="how">
+    <summary>how it works</summary>
+    <div class="body">
+      <p>You declare inputs and the laws that close them. A deterministic gate walks the
+        dependency map and issues a receipt: what computes, what is refused, which laws are
+        missing, and a SHA-256 over the result. No language model has run yet.</p>
+      <p>Only then is the receipt handed to Nemotron, which restates it in English under a
+        strict schema. Every status it echoes is compared back against the receipt, every
+        number it quotes must trace to one, and any disagreement refuses the whole answer —
+        the receipt still stands, rendered without a model.</p>
+      <p>One output, <code>defensive_factor</code>, is a <span class="term" data-tip="An output no declaration can release, because no closing relation for it exists." title="An output no declaration can release, because no closing relation for it exists.">lawless output</span>: no closing
+        relation for it exists. It stays refused even when every law is declared. Watch what
+        the attacks below try to do about that.</p>
+    </div>
+  </details>
+</div>
+
 <main>
   <section>
-    <h2>1 · Request</h2>
-    <p class="sub">What the caller declares.</p>
+    <h2><span class="step">1 · Declare</span></h2>
+    <p class="sub"><span class="lede">You declare the data and the
+      <span class="term" data-tip="A closing relation the caller declares. Without it the outputs that depend on it cannot be computed." title="A closing relation the caller declares. Without it the outputs that depend on it cannot be computed.">laws</span> that close it.</span></p>
     <div class="row">
       <select id="preset">
-        <option value="incomplete-laws">incomplete-laws</option>
-        <option value="declared-laws">declared-laws</option>
+        <option value="incomplete-laws">incomplete-laws — two laws forgotten</option>
+        <option value="declared-laws">declared-laws — everything declarable declared</option>
       </select>
       <button class="btn primary" id="run">validate</button>
     </div>
+    <p class="sub" id="preset-note" style="margin:-4px 0 10px"></p>
     <p class="readonly-note">Read-only on small screens — open on a desktop to edit.</p>
     <textarea id="request" spellcheck="false"></textarea>
   </section>
 
   <section class="hero">
-    <h2>2 · Receipt</h2>
-    <p class="sub">The receipt is the law.</p>
+    <h2><span class="step">2 · The math decides</span></h2>
+    <p class="sub"><span class="lede">Deterministic <span class="term" data-tip="The gate's machine-readable verdict: every output, its status, why, and a hash over the whole thing." title="The gate's machine-readable verdict: every output, its status, why, and a hash over the whole thing.">receipt</span>: what computes,
+      what is refused, why.</span> The receipt is the law.</p>
     <div id="receipt"><p class="empty">no receipt yet — press validate</p></div>
   </section>
 
   <section>
-    <h2>3 · Explanation</h2>
-    <p class="sub">May describe. May not decide.</p>
+    <h2><span class="step">3 · The AI explains</span></h2>
+    <p class="sub"><span class="lede">Nemotron narrates the receipt — read-only.</span>
+      May describe. May not decide.</p>
     <div class="provline mono" id="provline">
       <span>model <b id="pv-model">—</b></span>
       <span>build <b id="pv-build">—</b></span>
@@ -210,6 +286,19 @@ dialog::backdrop{background:rgba(5,7,10,.8)}
     <div id="explanation"><p class="empty">no explanation yet</p></div>
   </section>
 </main>
+
+<div class="result" id="result">
+  <span class="tag">RESULT</span>
+  <span class="math" id="r-math">waiting for the gate…</span>
+  <span class="ai" id="r-ai"></span>
+  <span class="seal" id="r-seal"></span>
+</div>
+
+<div class="bridge">
+  <h3>Now try to make the AI lie about that receipt.</h3>
+  <p><b id="r-attacks">33</b> attacks, three walls — each column is a different reason the
+    boundary holds, and only the third one is a check that could ever be switched off.</p>
+</div>
 
 <div class="console">
   <div class="groups" id="groups"></div>
@@ -280,13 +369,59 @@ const PRESETS = {
   }
 };
 
+const PRESET_NOTES = {
+  'incomplete-laws': 'The caller forgot two laws. Watch outputs get refused — and watch which one is refused for a different reason.',
+  'declared-laws': 'Every law that exists is declared. Three outputs compute; one still cannot, and never will.'
+};
+
 function loadPreset(){
-  $('#request').value = JSON.stringify(PRESETS[$('#preset').value], null, 2);
+  const name = $('#preset').value;
+  $('#request').value = JSON.stringify(PRESETS[name], null, 2);
+  $('#preset-note').textContent = PRESET_NOTES[name] || '';
 }
 
 function setCounter(state){
   $('#count').textContent = state.attacks_blocked;
   $('#since').textContent = 'since ' + state.since;
+}
+
+function setResult(receipt){
+  const outputs = Object.values(receipt.outputs);
+  const total = outputs.length;
+  const ready = outputs.filter(o => o.status === 'COMPUTABLE_READY').length;
+  const noLaw = outputs.filter(o => o.status === 'WITHHELD_NO_DECLARED_LAW').length;
+  const missing = total - ready - noLaw;
+
+  const parts = [];
+  if (missing === 0 && noLaw > 0){
+    parts.push(`${total} of ${total} resolved: ${ready} computed, ${noLaw} permanently out of scope`);
+    parts.push('no law exists for it');
+  } else {
+    parts.push(`${ready} of ${total} computed`);
+    parts.push(`${missing + noLaw} refused — ${missing} missing declared laws, ${noLaw} with no law at all`);
+    parts.push('nothing invented');
+  }
+  $('#r-math').textContent = parts.join(' · ');
+  $('#r-seal').textContent = 'receipt sealed ' + short(receipt.receipt_sha);
+  $('#r-ai').textContent = '';
+  $('#r-ai').className = 'ai';
+}
+
+function setResultAi(result){
+  const rejected = (result.attempts || []).filter(a => a.findings.length).length;
+  const el = $('#r-ai');
+  if (result.source === 'template'){
+    el.textContent = `· model answer refused ${rejected}× — receipt stands`;
+    el.className = 'ai refused';
+  } else if (rejected){
+    el.textContent = `· model answer refused ${rejected}×, then accepted`;
+    el.className = 'ai refused';
+  } else {
+    el.textContent = result.mode === 'canned' || result.mode === 'recorded'
+      ? '· recorded explanation, checked against this receipt'
+      : '· explanation checked against the receipt and accepted';
+    el.className = 'ai';
+  }
 }
 
 function renderReceipt(receipt){
@@ -313,6 +448,7 @@ function renderReceipt(receipt){
      <div class="sha">receipt_sha <b>${short(receipt.receipt_sha)}</b>
        <button class="btn" data-copy="${receipt.receipt_sha}">copy</button></div>`;
 
+  setResult(receipt);
   $('#ch-input').textContent = short(receipt.input_hash);
   $('#ch-receipt').textContent = short(receipt.receipt_sha);
   $('#canonical').textContent = JSON.stringify(receipt, null, 2);
@@ -344,6 +480,7 @@ function renderExplanation(result){
     <div class="unlock" style="margin-top:12px">
       ${answer.next_questions.map(q => `<div>? ${esc(q)}</div>`).join('')}</div>`;
 
+  setResultAi(result);
   $('#ch-expl').textContent = result.receipt_sha ? 'bound ' + short(result.receipt_sha)
     : (returned.response_id ? short(returned.response_id) : 'template');
 }
@@ -359,6 +496,9 @@ async function validate(){
     $('#receipt').innerHTML = `<div class="rej"><b>rejected at the door</b>` +
       verdict.details.map(d => esc(`${d.path||'(root)'} — ${d.code}`)).join('<br>') + `</div>`;
     $('#explanation').innerHTML = '<p class="empty">no receipt, no explanation</p>';
+    $('#r-math').textContent = 'request refused at the door — nothing was computed';
+    $('#r-ai').textContent = '';
+    $('#r-seal').textContent = 'no receipt issued';
     return;
   }
   renderReceipt(verdict.receipt);
@@ -432,6 +572,7 @@ async function loadGroups(){
       <h3>${esc(g.column)}</h3><p>${esc(blurb[g.column])}</p>
       ${g.cases.map(c => `<button class="btn" data-attack="${c.id}">${esc(c.title)}</button>`).join('')}
     </div>`).join('');
+  $('#r-attacks').textContent = groups.reduce((n, g) => n + g.cases.length, 0);
 }
 
 document.addEventListener('click', async e => {
