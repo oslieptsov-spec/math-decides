@@ -42,6 +42,11 @@ DEFAULT_PORT = 7690
 COUNTING_SINCE = "2026-08-25"
 RATE_LIMIT = (60, 60.0)          # requests per window, window in seconds
 MAX_BODY = 64 * 1024
+# An oversized body is drained before it is refused, so the client gets a 413
+# rather than a reset connection. Draining is itself capped: a refusal must not
+# become a way to make the server read whatever it is handed.
+DRAIN_CAP = 1024 * 1024
+DRAIN_CHUNK = 64 * 1024
 
 _hits = defaultdict(deque)
 
@@ -205,14 +210,27 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         pass
 
-    def _send(self, status, body, content_type="application/json"):
+    def _send(self, status, body, content_type="application/json", close=False):
         payload = body if isinstance(body, bytes) else json.dumps(body).encode()
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(payload)))
         self.send_header("X-Content-Type-Options", "nosniff")
+        if close:
+            self.send_header("Connection", "close")
+            self.close_connection = True
         self.end_headers()
         self.wfile.write(payload)
+
+    def _drain(self, length):
+        """Read and discard a refused body so the client can read the refusal."""
+        remaining = min(length, DRAIN_CAP)
+        while remaining > 0:
+            chunk = self.rfile.read(min(DRAIN_CHUNK, remaining))
+            if not chunk:
+                break
+            remaining -= len(chunk)
+        return length <= DRAIN_CAP
 
     def do_GET(self):
         if self.path in ("/", "/index.html"):
@@ -233,7 +251,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(429, {"error": "RATE_LIMITED"})
         length = int(self.headers.get("Content-Length") or 0)
         if length > MAX_BODY:
-            return self._send(413, {"error": "BODY_TOO_LARGE"})
+            fully_drained = self._drain(length)
+            return self._send(413, {"error": "BODY_TOO_LARGE",
+                                    "limit_bytes": MAX_BODY},
+                              close=not fully_drained)
         try:
             payload = json.loads(self.rfile.read(length) or b"{}")
         except json.JSONDecodeError:
