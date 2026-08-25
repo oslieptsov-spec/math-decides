@@ -21,8 +21,10 @@ and that date is published next to it.
 import datetime
 import errno
 import json
+import signal
 import os
 import socket
+import threading
 import time
 from collections import defaultdict, deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -341,5 +343,19 @@ def serve(host="127.0.0.1", port=None, auto=True):
               f"(pin one with --port or GATE_PORT)")
         httpd = ThreadingHTTPServer((host, moved), Handler)
         port = moved
-    print(f"gate ui on http://{host}:{port}  (mode: {mode()})")
-    httpd.serve_forever()
+    # A terminated server must actually terminate. Without this, SIGTERM left
+    # the process alive with its socket gone: nothing answered on the port and
+    # `ps` still showed it running, which is the most confusing way for a
+    # service to be down.
+    def stop(_signum, _frame):
+        threading.Thread(target=httpd.shutdown, daemon=True).start()
+
+    for received in (signal.SIGTERM, signal.SIGINT):
+        signal.signal(received, stop)
+
+    print(f"gate ui on http://{host}:{port}  (mode: {mode()})", flush=True)
+    try:
+        httpd.serve_forever()
+    finally:
+        httpd.server_close()
+        print("stopped", flush=True)
