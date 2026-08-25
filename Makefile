@@ -18,3 +18,12 @@ calibrate:
 
 explain:
 	python3 -m explainer $(EXAMPLE)
+
+attacks:
+	python3 -m attacks
+
+sabotage:
+	python3 -m attacks --sabotage
+
+results:
+	python3 -m attacks --write
