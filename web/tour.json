@@ -1,7 +1,17 @@
 {
   "_note": "Card copy for the guided tour. Three layers per scene: what you are looking at, what just happened, why it matters. Counts are placeholders — no figure is written here by hand. Two rules are enforced by tests: no term appears before the scene that introduces it, and the first sentence of any card avoids the trade words.",
-  "ladder": {"law": 1, "receipt": 2, "provenance": 3},
-  "forbidden_in_first_sentence": ["deterministic", "schema", "validator", "provenance", "hash"],
+  "ladder": {
+    "law": 1,
+    "receipt": 2,
+    "provenance": 3
+  },
+  "forbidden_in_first_sentence": [
+    "deterministic",
+    "schema",
+    "validator",
+    "provenance",
+    "hash"
+  ],
   "scenes": [
     {
       "id": "declare",
@@ -27,7 +37,7 @@
     {
       "id": "contrast",
       "title": "Declare every law that exists",
-      "l1": "Same request — but now every rule is declared.",
+      "l1": "Same request, second example — but now every rule is declared.",
       "l2": "Watch the refusals turn into numbers. One output stays refused forever: no law for it exists anywhere, so no honest system can ever produce it.",
       "l3": "That is the difference between a missing declaration, which the caller can fix, and out of scope, which nobody can."
     },
