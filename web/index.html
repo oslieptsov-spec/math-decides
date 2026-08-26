@@ -103,7 +103,7 @@ select{background:var(--raised);color:var(--text);border:1px solid var(--line);
 .status[data-s="WITHHELD_MISSING_DECLARED_LAW"]{color:var(--amber);border-color:#4a3a12;background:#211a08}
 .status[data-s="WITHHELD_NO_DECLARED_LAW"]{color:var(--grey);border-color:#2b323b;background:transparent;border-style:dashed}
 .status[data-s="WITHHELD_UPSTREAM"]{color:var(--grey);border-color:#2b323b}
-.status[data-s="REJECTED"]{color:var(--red);border-color:#4a1416;background:#210b0c}
+.rej.hard{border-color:#4a1416;background:#210b0c;color:var(--red)}
 .sha{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:12px;
      display:flex;gap:8px;align-items:center}
 .sha b{color:var(--text);font-weight:500}
@@ -420,7 +420,12 @@ const short = h => h ? h.slice(0,8) + '…' : '—';
 const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 
 let lastReceipt = null;
+let lastRequest = null;
+let lastPreset = null;
 let currentMode = 'canned';
+// While the tour is between step one and step three, validate stops at the
+// receipt. "Now, and only now, the model" has to be true when it is said.
+let tourHoldsExplanation = false;
 
 const PRESETS = {
   'incomplete-laws': {
@@ -611,7 +616,7 @@ async function validate(){
 
   const verdict = await api('/api/evaluate', {request});
   if (!verdict.ok){
-    $('#receipt').innerHTML = `<div class="rej"><b>rejected at the door</b>` +
+    $('#receipt').innerHTML = `<div class="rej hard"><b>rejected at the door</b>` +
       verdict.details.map(d => esc(`${d.path||'(root)'} — ${d.code}`)).join('<br>') + `</div>`;
     $('#explanation').innerHTML = '<p class="empty">no receipt, no explanation</p>';
     $('#r-math').textContent = 'request refused at the door — nothing was computed';
@@ -620,10 +625,23 @@ async function validate(){
     return;
   }
   renderReceipt(verdict.receipt);
+  lastRequest = request;
+  lastPreset = preset;
+  if (tourHoldsExplanation){
+    $('#explanation').innerHTML =
+      '<p class="empty">the model has not been asked yet</p>';
+    return;
+  }
+  await runExplain();
+}
+
+async function runExplain(){
+  if (!lastRequest) return;
   $('#explanation').innerHTML = `<p class="empty">${
     currentMode === 'canned' ? 'serving recorded explanation…' : 'asking the model…'}</p>`;
-  const unchanged = JSON.stringify(request) === JSON.stringify(PRESETS[preset]);
-  const result = await api('/api/explain', unchanged ? {example: preset} : {request});
+  const unchanged = JSON.stringify(lastRequest) === JSON.stringify(PRESETS[lastPreset]);
+  const result = await api('/api/explain',
+                           unchanged ? {example: lastPreset} : {request: lastRequest});
   if (result.ok) renderExplanation(result);
 }
 
@@ -735,6 +753,7 @@ const TOUR = [
    title:'The math decides',
    body:'One output computed, three refused — and one of them for a different reason than the others. defensive_factor has no closing relation at all.'},
   {sel:'#panel-3', spot:'#provline',
+   before: async () => { tourHoldsExplanation = false; await runExplain(); },
    title:'Now, and only now, the model',
    body:'The receipt was sealed before any model ran. Nemotron restates it and cannot change a status; the provenance line names exactly what produced the words.'},
   {sel:'#panel-2', preset:'declared-laws',
@@ -762,6 +781,7 @@ function tourClear(){
 }
 
 function tourEnd(){
+  tourHoldsExplanation = false;
   tourClear();
   document.querySelector('.tour-dim')?.remove();
   document.querySelector('.tour-card')?.remove();
@@ -776,6 +796,7 @@ async function tourGo(index){
   tourAt = index;
   const step = TOUR[index];
 
+  if (step.before) await step.before();
   if (step.preset){
     $('#preset').value = step.preset;
     loadPreset();
@@ -869,9 +890,20 @@ function enterApp(){
   $('#hero-skip').onclick = async () => { enterApp(); await validate(); };
   // The tour opens on an unvalidated screen on purpose: step one asks for the
   // press, and a screen that has already answered has nothing left to ask.
-  $('#hero-tour').onclick = async () => { enterApp(); await tourGo(0); };
+  $('#hero-tour').onclick = async () => {
+    enterApp();
+    tourHoldsExplanation = true;
+    await tourGo(0);
+  };
   if (step !== null || location.hash) enterApp();
-  if (step) { tourAutoFire = true; await validate(); await tourGo(step - 1); return; }
+  if (step) {
+    tourAutoFire = true;
+    // A deep link to step one or two lands on the same world the tour builds.
+    tourHoldsExplanation = step <= 2;
+    await validate();
+    await tourGo(step - 1);
+    return;
+  }
   if (step === null && !location.hash) return;
 
   // Deep link for the recording, opened before the model is asked anything —
