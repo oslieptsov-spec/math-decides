@@ -37,6 +37,7 @@ from gate import canonical, domain, engine, examples, schema
 ROOT = Path(__file__).resolve().parent
 COUNTER_FILE = ROOT / "counter.json"
 CANNED_FILE = ROOT / "canned.json"
+TOUR_FILE = ROOT / "tour.json"
 SABOTAGE_FILE = ROOT / "sabotage.json"
 
 # 7690 after the accent colour, #76B900. Off every default any other tool
@@ -174,6 +175,16 @@ def api_explain(payload):
     return {"ok": True, "receipt": receipt, "mode": current, **result}
 
 
+def api_tour():
+    """Card copy for the guided tour, kept as data.
+
+    Copy that carries a count, a term or a promise is copy a test should be
+    able to read. It lives in tour.json so the ladder of terms and the ban on
+    trade words in a first sentence can be checked rather than remembered.
+    """
+    return json.loads(TOUR_FILE.read_text(encoding="utf-8"))
+
+
 def api_presets():
     """What each preset declares, counted here rather than typed into prose.
 
@@ -269,6 +280,7 @@ ROUTES_GET = {"/api/state": lambda: api_state(),
               "/api/rejected": lambda: api_rejected(),
               "/api/attacks": lambda: api_attacks(),
               "/api/presets": lambda: api_presets(),
+              "/api/tour": lambda: api_tour(),
               "/api/sabotage": lambda: api_sabotage()}
 ROUTES_POST = {"/api/evaluate": api_evaluate, "/api/explain": api_explain,
                "/api/attack": api_attack, "/api/freetext": api_freetext}

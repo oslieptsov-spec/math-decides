@@ -225,8 +225,14 @@ body.tour textarea{min-height:340px}
            background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);
            border-radius:2px;padding:16px 18px}
 .tour-card .n{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--faint)}
-.tour-card h3{margin:6px 0 6px;font-size:15px;font-weight:500}
-.tour-card p{margin:0;color:var(--muted);font-size:13px}
+.tour-card h3{margin:6px 0 10px;font-size:16px;font-weight:500}
+/* Three layers, in the order a stranger reads them: what this is, what just
+   happened, why it matters. Precision lives in the third line, so it never
+   has to be the first thing anyone meets. */
+.tour-card .l1{margin:0 0 8px;font-size:14.5px;color:var(--text)}
+.tour-card .l2{margin:0 0 10px;font-size:13.5px;color:var(--muted)}
+.tour-card .l3{margin:0;padding-top:9px;border-top:1px solid var(--line);
+               font-size:12.5px;color:var(--faint)}
 .tour-card .acts{display:flex;gap:8px;margin-top:12px;align-items:center}
 .tour-card .acts .spacer{flex:1}
 .tour-band{background:#16200a;border:1px solid #2f4a12;border-radius:2px;padding:10px 12px;
@@ -761,46 +767,36 @@ const STAGE = {
 };
 const PANELS = ['panel-1', 'panel-2', 'panel-3'];
 
+let TOUR_COPY = {};
+
+function tourFacts(step){
+  const preset = PRESET_FACTS[step.preset || $('#preset').value] || {};
+  const outputs = lastReceipt ? Object.values(lastReceipt.outputs) : [];
+  const computed = outputs.filter(o => o.status === 'COMPUTABLE_READY').length;
+  return {
+    missing: preset.missing, total: preset.total, declared: preset.declared,
+    computed, refused: outputs.length - computed,
+    attacks: $('#r-attacks').textContent
+  };
+}
+
+function fill(text, facts){
+  return String(text).replace(/\{(\w+)\}/g, (_, key) =>
+    facts[key] === undefined ? `{${key}}` : facts[key]);
+}
+
 const TOUR = [
-  {scene: ['panel-1'], pulse: '#run', advanceOn: '#run', clear: true,
-   preset: 'incomplete-laws',
-   title: 'The caller declares — and forgets some laws',
-   body: () => {
-     const f = PRESET_FACTS['incomplete-laws'] || {};
-     return `Data, plus the closing relations that make outputs computable. ` +
-            `${f.missing} of the ${f.total} laws are missing here. Press validate — ` +
-            `the receipt is the only thing that will change.`;
-   }},
-  {scene: ['panel-1', 'panel-2'], spot: '#out-defensive_factor',
-   title: 'The math decides',
-   body: 'One output computed, three refused — and one of them for a different ' +
-         'reason than the others. defensive_factor has no closing relation at all, ' +
-         'so no declaration will ever release it.'},
-  {scene: ['panel-2', 'panel-3'], spot: '#provline',
-   before: async () => { tourHoldsExplanation = false; await runExplain(); },
-   title: 'Now, and only now, the model',
-   body: 'The receipt was sealed before any model ran. Nemotron restates it and ' +
-         'cannot change a status; the provenance line names exactly what produced ' +
-         'the words, and the receipt sits beside it to check them against.'},
-  {scene: ['panel-1', 'panel-2', 'result'], preset: 'declared-laws',
-   title: 'Now declare every law that exists',
-   body: 'Three outputs compute. One does not — and never will. No declaration ' +
-         'releases it, because no law for it exists. That is the difference ' +
-         'between refused and out of scope.'},
-  {scene: ['bridge', 'console'], pulse: '[data-attack="model-release"]',
-   advanceOn: '[data-attack="model-release"]', autofire: true,
-   title: 'Now try to make the AI lie about that receipt',
-   body: 'Three walls, three different reasons the boundary holds. Run one: the ' +
-         'log names which wall stopped it, and shows that the receipt digest ' +
-         'never moved.'},
-  {scene: [], sabotage: true,
-   title: 'And what it looks like without the guardrail',
-   body: 'The recorded negative control: attacks that reach the consumer, and a ' +
-         'withheld output silently released.'},
-  {scene: 'all', done: true,
-   title: 'And here it is, all together',
-   body: 'The same screen you have been assembling, now in one piece. Nothing on ' +
-         'it is new — you watched every part of it arrive.'}
+  {copy: 'declare', scene: ['panel-1'], pulse: '#run', advanceOn: '#run',
+   clear: true, preset: 'incomplete-laws'},
+  {copy: 'receipt', scene: ['panel-1', 'panel-2'], spot: '#out-defensive_factor'},
+  {copy: 'explain', scene: ['panel-2', 'panel-3'], spot: '#provline',
+   before: async () => { tourHoldsExplanation = false; await runExplain(); }},
+  {copy: 'contrast', scene: ['panel-1', 'panel-2', 'result'], preset: 'declared-laws'},
+  {copy: 'attack', scene: ['bridge', 'console'],
+   pulse: '[data-attack="model-release"]',
+   advanceOn: '[data-attack="model-release"]', autofire: true},
+  {copy: 'sabotage', scene: [], sabotage: true},
+  {copy: 'together', scene: 'all', done: true}
 ];
 
 let tourAt = -1;
@@ -856,10 +852,16 @@ function tourCard(index, step){
     ? document.querySelector('.console')
     : document.querySelector(STAGE[step.scene[step.scene.length - 1]]);
   document.querySelector('.tour-card')?.remove();
+  const copy = TOUR_COPY[step.copy] || {};
+  const facts = tourFacts(step);
   const html = `<div class="tour-card">
     <div class="n">step ${index + 1} of ${TOUR.length}</div>
-    <h3>${esc(step.title)}</h3>
-    <p>${esc(typeof step.body === 'function' ? step.body() : step.body)}</p>
+    <h3>${esc(copy.title || '')}</h3>
+    <p class="l1">${esc(fill(copy.l1 || '', facts))}</p>
+    <p class="l2">${esc(fill(copy.l2 || '', facts))}</p>
+    <p class="l3">${esc(fill(copy.l3 || '', facts))}${
+      step.done ? ` <a href="${TOUR_REPO}" target="_blank" rel="noopener">${
+        TOUR_REPO.replace('https://', '')}</a>` : ''}</p>
     <div class="acts">
       <button class="btn primary" id="t-next">${step.done ? 'done' : 'next'}</button>
       <span class="spacer"></span>
@@ -890,9 +892,13 @@ async function tourGo(index){
   if (step.sabotage){
     document.querySelector('.tour-card')?.remove();
     await showSabotage();
+    const band = TOUR_COPY[step.copy] || {};
+    const bandFacts = tourFacts(step);
     $('#dlg-body').insertAdjacentHTML('afterbegin',
-      `<div class="tour-band"><b>${esc(step.title)}</b><br>${esc(
-        typeof step.body === 'function' ? step.body() : step.body)}
+      `<div class="tour-band"><b>${esc(band.title || '')}</b><br>
+        ${esc(fill(band.l1 || '', bandFacts))}<br>
+        ${esc(fill(band.l2 || '', bandFacts))}<br>
+        <span style="color:var(--muted)">${esc(fill(band.l3 || '', bandFacts))}</span>
         <br><br><button class="btn primary" id="t-next-band">next</button></div>`);
     $('#t-next-band').onclick = () => { $('#dlg').close(); tourGo(index + 1); };
     return;
@@ -935,6 +941,8 @@ function enterApp(){
   $('#mode').dataset.mode = state.mode;
   await loadGroups();
   await loadPresetFacts();
+  TOUR_COPY = Object.fromEntries(
+    (await api('/api/tour')).scenes.map(scene => [scene.id, scene]));
   loadPreset();
 
   // State 0 is the default: a cold visitor gets one choice, not a wall of data.

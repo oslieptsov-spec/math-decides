@@ -1,0 +1,56 @@
+{
+  "_note": "Card copy for the guided tour. Three layers per scene: what you are looking at, what just happened, why it matters. Counts are placeholders — no figure is written here by hand. Two rules are enforced by tests: no term appears before the scene that introduces it, and the first sentence of any card avoids the trade words.",
+  "ladder": {"law": 1, "receipt": 2, "provenance": 3},
+  "forbidden_in_first_sentence": ["deterministic", "schema", "validator", "provenance", "hash"],
+  "scenes": [
+    {
+      "id": "declare",
+      "title": "You hand the system its rules",
+      "l1": "This is the request: market data, plus the rules — \"laws\" — the caller declares for how answers may be computed.",
+      "l2": "This caller forgot {missing} of the {total} laws.",
+      "l3": "Nothing outside this box will ever influence the result. Watch what the system does about it — it will not guess."
+    },
+    {
+      "id": "receipt",
+      "title": "The receipt: every answer, or a named refusal",
+      "l1": "Read it like a store receipt: every line is either a computed number or a refusal with the exact reason printed.",
+      "l2": "{computed} computed, {refused} refused — and the receipt names the missing law for each.",
+      "l3": "No AI was involved yet. This is deterministic code: same input, same receipt, same hash — forever."
+    },
+    {
+      "id": "explain",
+      "title": "Now, and only now, the model",
+      "l1": "The receipt is sealed. Only now does the AI appear — and all it can do is read the receipt aloud in plain language.",
+      "l2": "It cannot add a number, change a status, or \"help\".",
+      "l3": "The provenance line names exactly what produced these words: which model, which build, which path."
+    },
+    {
+      "id": "contrast",
+      "title": "Declare every law that exists",
+      "l1": "Same request — but now every rule is declared.",
+      "l2": "Watch the refusals turn into numbers. One output stays refused forever: no law for it exists anywhere, so no honest system can ever produce it.",
+      "l3": "That is the difference between a missing declaration, which the caller can fix, and out of scope, which nobody can."
+    },
+    {
+      "id": "attack",
+      "title": "Try to make the AI lie about that receipt",
+      "l1": "{attacks} recorded attempts to talk, trick, or force the AI into changing the receipt — forged receipts, fake authority, smuggled instructions.",
+      "l2": "Each one hits a wall before it can touch the answer.",
+      "l3": "Three walls, three columns: structure — no path exists; schema — refused at the door; post-validator — the only wall a model's words ever reach."
+    },
+    {
+      "id": "sabotage",
+      "title": "Proof the guard is alive",
+      "l1": "A test that never fails proves nothing.",
+      "l2": "So we break the guard on purpose and run the same attacks again: the ones that were blocked now get through, and a withheld output reaches the consumer.",
+      "l3": "That is the negative control — the walls are load-bearing, not decorative."
+    },
+    {
+      "id": "together",
+      "title": "All together",
+      "l1": "Everything you just saw, on one screen, live: declare, compute, explain, attack.",
+      "l2": "The receipt is the law.",
+      "l3": "Fork it for your domain."
+    }
+  ]
+}
