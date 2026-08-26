@@ -32,7 +32,7 @@ from pathlib import Path
 
 from attacks import cases, runner
 from explainer import client, explain, render
-from gate import canonical, engine, examples, schema
+from gate import canonical, domain, engine, examples, schema
 
 ROOT = Path(__file__).resolve().parent
 COUNTER_FILE = ROOT / "counter.json"
@@ -174,6 +174,23 @@ def api_explain(payload):
     return {"ok": True, "receipt": receipt, "mode": current, **result}
 
 
+def api_presets():
+    """What each preset declares, counted here rather than typed into prose.
+
+    A preset was labelled "two laws forgotten" while declaring one law of four,
+    which is three forgotten. The number had been read off the result line,
+    where 2 counts refused outputs and not laws. Copy that carries a count now
+    renders from the same place the gate reads it.
+    """
+    total = len(domain.LAWS)
+    presets = []
+    for name in sorted(examples.EXAMPLES):
+        declared = len(examples.load(name)["declared_laws"])
+        presets.append({"name": name, "declared": declared, "total": total,
+                        "missing": total - declared})
+    return {"presets": presets, "laws": sorted(domain.LAWS)}
+
+
 def api_attacks():
     """Cases grouped by the column that stops them. The grouping is the lesson."""
     grouped = defaultdict(list)
@@ -251,6 +268,7 @@ def api_rejected():
 ROUTES_GET = {"/api/state": lambda: api_state(),
               "/api/rejected": lambda: api_rejected(),
               "/api/attacks": lambda: api_attacks(),
+              "/api/presets": lambda: api_presets(),
               "/api/sabotage": lambda: api_sabotage()}
 ROUTES_POST = {"/api/evaluate": api_evaluate, "/api/explain": api_explain,
                "/api/attack": api_attack, "/api/freetext": api_freetext}

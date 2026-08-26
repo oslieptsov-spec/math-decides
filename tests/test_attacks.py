@@ -63,6 +63,22 @@ class PublishedNumbers(unittest.TestCase):
                     self.assertEqual(int(denominator), total,
                                      f"{path.name}: {numerator}/{denominator} is stale")
 
+    def test_the_page_never_states_a_law_count_in_copy(self):
+        """Counts in prose render from the domain, not from a keystroke.
+
+        A preset read "two laws forgotten" while declaring one law of four.
+        The figure had been copied off the result line, where 2 counts refused
+        outputs rather than laws — a number true one line up and false where it
+        landed.
+        """
+        import re
+        html = (ROOT / "web/index.html").read_text(encoding="utf-8")
+        pattern = re.compile(
+            r"\b(one|two|three|four|five|\d+)\s+(?:of\s+(?:the\s+)?\w+\s+)?laws\b",
+            re.IGNORECASE)
+        for match in pattern.finditer(html):
+            self.fail(f"a law count is written into the page: {match.group(0)!r}")
+
     def test_the_page_never_hardcodes_the_count(self):
         html = (ROOT / "web/index.html").read_text(encoding="utf-8")
         self.assertIn("r-attacks", html)

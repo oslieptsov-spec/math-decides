@@ -327,8 +327,8 @@ dialog::backdrop{background:rgba(5,7,10,.8)}
       <span class="term" data-tip="A closing relation the caller declares. Without it the outputs that depend on it cannot be computed." title="A closing relation the caller declares. Without it the outputs that depend on it cannot be computed.">laws</span> that close it.</span></p>
     <div class="row">
       <select id="preset">
-        <option value="incomplete-laws">incomplete-laws — two laws forgotten</option>
-        <option value="declared-laws">declared-laws — everything declarable declared</option>
+        <option value="incomplete-laws">incomplete-laws</option>
+        <option value="declared-laws">declared-laws</option>
       </select>
       <button class="btn primary" id="run">validate</button>
     </div>
@@ -444,20 +444,52 @@ const PRESETS = {
   }
 };
 
-const PRESET_NOTES = {
-  'incomplete-laws': 'The caller forgot two laws. Watch outputs get refused — and watch which one is refused for a different reason.',
-  'declared-laws': 'Every law that exists is declared. Three outputs compute; one still cannot, and never will.'
-};
+// Counts come from /api/presets. Nothing here states a number of its own: the
+// third time a figure lived in two versions at once, it was in copy.
+let PRESET_FACTS = {};
+
+function presetNote(name){
+  const f = PRESET_FACTS[name];
+  if (!f) return '';
+  return f.missing
+    ? `${f.declared} of ${f.total} laws declared, ${f.missing} missing. Watch outputs get refused — and watch which one is refused for a different reason.`
+    : `All ${f.total} laws declared. Outputs compute — except one, which still cannot, and never will.`;
+}
+
+function presetLabel(name){
+  const f = PRESET_FACTS[name];
+  if (!f) return name;
+  return f.missing ? `${name} — ${f.missing} of ${f.total} laws missing`
+                   : `${name} — all ${f.total} laws declared`;
+}
+
+async function loadPresetFacts(){
+  const {presets} = await api('/api/presets');
+  presets.forEach(p => { PRESET_FACTS[p.name] = p; });
+  [...$('#preset').options].forEach(o => { o.textContent = presetLabel(o.value); });
+}
 
 function loadPreset(){
   const name = $('#preset').value;
   $('#request').value = JSON.stringify(PRESETS[name], null, 2);
-  $('#preset-note').textContent = PRESET_NOTES[name] || '';
+  $('#preset-note').textContent = presetNote(name);
 }
 
 function setCounter(state){
   $('#count').textContent = state.attacks_blocked;
   $('#since').textContent = 'since ' + state.since;
+}
+
+function clearPanels(){
+  lastReceipt = null;
+  $('#receipt').innerHTML = '<p class="empty">no receipt yet — press validate</p>';
+  $('#explanation').innerHTML = '<p class="empty">no explanation yet</p>';
+  ['#pv-model', '#pv-build', '#pv-path', '#pv-temp', '#pv-source']
+    .forEach(id => { const el = $(id); if (el) el.textContent = '—'; });
+  $('#r-math').textContent = 'waiting for the gate…';
+  $('#r-ai').textContent = '';
+  $('#r-seal').textContent = '';
+  ['#ch-input', '#ch-receipt', '#ch-expl'].forEach(id => $(id).textContent = '—');
 }
 
 function setResult(receipt){
@@ -473,7 +505,7 @@ function setResult(receipt){
     parts.push('no law exists for it');
   } else {
     parts.push(`${ready} of ${total} computed`);
-    parts.push(`${missing + noLaw} refused — ${missing} missing declared laws, ${noLaw} with no law at all`);
+    parts.push(`${missing + noLaw} refused — ${missing} for missing laws, ${noLaw} with no law at all`);
     parts.push('nothing invented');
   }
   $('#r-math').textContent = parts.join(' · ');
@@ -691,9 +723,14 @@ $('#sabotage').addEventListener('click', showSabotage);
    which is why they are short — the screen is doing the explaining. */
 
 const TOUR = [
-  {sel:'#panel-1', pulse:'#run', advanceOn:'#run',
-   title:'The caller declares — and forgets two laws',
-   body:'Data, plus the closing relations that make outputs computable. Two of the four laws are missing here. Press validate.'},
+  {sel:'#panel-1', pulse:'#run', advanceOn:'#run', clear:true,
+   preset:'incomplete-laws',
+   title:'The caller declares — and forgets some laws',
+   body:() => {
+     const f = PRESET_FACTS['incomplete-laws'] || {};
+     return `Data, plus the closing relations that make outputs computable. ` +
+            `${f.missing} of the ${f.total} laws are missing here. Press validate.`;
+   }},
   {sel:'#panel-2', spot:'#out-defensive_factor',
    title:'The math decides',
    body:'One output computed, three refused — and one of them for a different reason than the others. defensive_factor has no closing relation at all.'},
@@ -704,6 +741,7 @@ const TOUR = [
    title:'Now declare every law that exists',
    body:'Three outputs compute. One does not — and never will. No declaration releases it, because no law for it exists. That is the difference between refused and out of scope.'},
   {sel:'#bridge', pulse:'[data-attack="model-release"]', advanceOn:'[data-attack="model-release"]',
+   autofire:true,
    title:'Now try to make the AI lie about that receipt',
    body:'Three walls, three different reasons the boundary holds. Run one: the log shows which wall stopped it, and that the receipt digest never moved.'},
   {sabotage:true,
@@ -741,15 +779,19 @@ async function tourGo(index){
   if (step.preset){
     $('#preset').value = step.preset;
     loadPreset();
-    await validate();
+    // A step that asks for the press must not have answered already. Only the
+    // contrast step validates on entry; step one hands the visitor an empty
+    // right-hand side so the press has something to change.
+    if (!step.clear) await validate();
   }
+  if (step.clear) clearPanels();
 
   if (step.sabotage){
     document.querySelector('.tour-card')?.remove();
     document.querySelector('.tour-dim')?.remove();
     await showSabotage();
     $('#dlg-body').insertAdjacentHTML('afterbegin',
-      `<div class="tour-band"><b>${esc(step.title)}</b><br>${esc(step.body)}
+      `<div class="tour-band"><b>${esc(step.title)}</b><br>${esc(typeof step.body === 'function' ? step.body() : step.body)}
          <br><br>Fork it: <a href="${TOUR_REPO}" target="_blank" rel="noopener">${TOUR_REPO.replace('https://','')}</a></div>`);
     return;
   }
@@ -768,7 +810,7 @@ async function tourGo(index){
     card = document.querySelector('.tour-card');
   }
   card.innerHTML = `<div class="n">step ${index + 1} of ${TOUR.length}</div>
-    <h3>${esc(step.title)}</h3><p>${esc(step.body)}</p>
+    <h3>${esc(step.title)}</h3><p>${esc(typeof step.body === 'function' ? step.body() : step.body)}</p>
     <div class="acts"><button class="btn primary" id="t-next">next</button>
       <span class="spacer"></span>
       <button class="btn" id="t-exit">exit tour</button></div>`;
@@ -781,7 +823,10 @@ async function tourGo(index){
     };
     document.addEventListener('click', tourHandler, true);
   }
-  if (tourAutoFire && step.pulse){
+  // Only a step whose evidence appears elsewhere fires itself. Step one's
+  // pulse is validate, and pressing it for the visitor would erase the empty
+  // right-hand side that the step exists to show.
+  if (tourAutoFire && step.autofire && step.pulse){
     tourAutoFire = false;
     const button = document.querySelector(step.pulse);
     if (button) setTimeout(() => {
@@ -809,6 +854,8 @@ function enterApp(){
   $('#mode').textContent = state.mode;
   $('#mode').dataset.mode = state.mode;
   await loadGroups();
+  await loadPresetFacts();
+  loadPreset();
 
   // State 0 is the default: a cold visitor gets one choice, not a wall of data.
   // ?tour=0 skips it and lands on the answered screen; ?tour=N opens step N;
