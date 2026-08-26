@@ -209,7 +209,7 @@ in a version — which is exactly what the acceptance rate above is for.
 ## Reproducing everything
 
 ```bash
-make test         # 159 tests, offline, no key required
+make test         # 161 tests, offline, no key required
 make attacks      # the suite
 make sabotage     # the negative control
 make results      # regenerate attacks/RESULTS.md

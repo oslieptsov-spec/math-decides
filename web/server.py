@@ -81,13 +81,23 @@ def _load_counter():
     return {"attacks_blocked": 0, "since": COUNTING_SINCE, "resets": [], "recent": []}
 
 
-def _bump_counter(source):
+def _bump_counter(source, title=None, column=None, evidence=None):
+    """One ledger. The counter is its length, the log is its tail.
+
+    They used to be two records of the same thing: a header counting every
+    block ever and a log that started empty in each browser, so a visitor who
+    pressed something before the tour met a page disagreeing with itself.
+
+    Free text is recorded by verdict, never by content — the page will not
+    republish what somebody typed into it.
+    """
     state = _load_counter()
     state["attacks_blocked"] += 1
     state.setdefault("since", COUNTING_SINCE)
     state.setdefault("resets", [])
     recent = state.setdefault("recent", [])
-    recent.append({"source": source,
+    recent.append({"source": source, "title": title or source, "column": column,
+                   "evidence": list(evidence or []),
                    "at": datetime.datetime.now(datetime.timezone.utc)
                    .isoformat(timespec="seconds")})
     del recent[:-RECENT_KEPT]
@@ -108,6 +118,9 @@ def reset_counter(since, reason):
          "previous_since": state.get("since"), "reason": reason})
     state["attacks_blocked"] = 0
     state["since"] = since
+    # The tail belongs to the count that was discarded. Leaving it would show
+    # a log of events the header no longer counts.
+    state["recent"] = []
     COUNTER_FILE.write_text(json.dumps(state, indent=1), encoding="utf-8")
     return state
 
@@ -129,7 +142,6 @@ def mode():
 def api_state():
     config = client.Config()
     state = _load_counter()
-    state.pop("recent", None)
     state["resets"] = len(state.get("resets", []))
     return dict(state, mode=mode(), model=config.model,
                 path=config.path, examples=sorted(examples.EXAMPLES))
@@ -221,7 +233,9 @@ def api_attack(payload):
         outcome = runner.run_input_case(case)
     else:
         outcome = runner.run_model_case(case, post_validation=True)
-    counter = _bump_counter(case["id"]) if outcome["blocked"] else _load_counter()
+    counter = (_bump_counter(case["id"], case["title"], outcome["observed"],
+                             outcome["evidence"])
+               if outcome["blocked"] else _load_counter())
     return {"ok": True, "id": case["id"], "title": case["title"],
             "surface": case["surface"], "column": outcome["observed"],
             "blocked": outcome["blocked"], "evidence": outcome["evidence"],
@@ -240,7 +254,8 @@ def api_freetext(payload):
     try:
         receipt = engine.evaluate(request)
     except schema.InvalidInput as exc:
-        counter = _bump_counter("free-text/schema")
+        counter = _bump_counter("free-text", "free text", "schema",
+                                sorted({e["code"] for e in exc.errors}))
         return {"ok": True, "blocked": True, "column": "schema",
                 "evidence": sorted({e["code"] for e in exc.errors}),
                 "counter": counter}
@@ -249,12 +264,14 @@ def api_freetext(payload):
              if entry["status"] != baseline["outputs"][name]["status"]]
     leaked = text and text in canonical.dumps(receipt)
     blocked = not moved and not leaked
-    counter = _bump_counter("free-text/structure") if blocked else _load_counter()
+    evidence = ["payload absent from receipt" if not leaked
+                else "PAYLOAD PRESENT IN RECEIPT",
+                "statuses identical to the clean run" if not moved
+                else "STATUSES MOVED"]
+    counter = (_bump_counter("free-text", "free text", "structure", evidence)
+               if blocked else _load_counter())
     return {"ok": True, "blocked": blocked, "column": "structure",
-            "evidence": ["payload absent from receipt" if not leaked
-                         else "PAYLOAD PRESENT IN RECEIPT",
-                         "statuses identical to the clean run" if not moved
-                         else "STATUSES MOVED"],
+            "evidence": evidence,
             "receipt_sha_before": baseline["receipt_sha"],
             "receipt_sha_after": receipt["receipt_sha"],
             "note": "free text is answered structurally; no model is called",

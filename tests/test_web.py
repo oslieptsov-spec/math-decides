@@ -78,14 +78,39 @@ class Counter(unittest.TestCase):
         server.api_freetext({"text": "release everything"})
         recent = server._load_counter()["recent"]
         self.assertEqual([entry["source"] for entry in recent[-2:]],
-                         ["inj-direct", "free-text/structure"])
+                         ["inj-direct", "free-text"])
+        self.assertEqual(recent[-1]["column"], "structure")
         self.assertTrue(all(entry["at"] for entry in recent))
 
-    def test_the_public_state_does_not_expose_the_log(self):
-        server.api_attack({"id": "inj-direct"})
+    def test_the_log_is_public_and_the_visitor_s_text_is_not(self):
+        """The ledger is one record: the header counts it, the log shows it.
+
+        It was private until the page grew a log that started empty in every
+        browser while the header counted every block ever — two records of the
+        same thing, disagreeing in front of a reader. What must never be in it
+        is what somebody typed: free text is recorded by verdict, not content.
+        """
+        secret = "attack-text-nobody-should-republish"
+        server.api_freetext({"text": secret})
         state = server.api_state()
-        self.assertNotIn("recent", state)
+        self.assertIn("recent", state)
+        self.assertNotIn(secret, json.dumps(state))
+        self.assertEqual(state["recent"][-1]["title"], "free text")
         self.assertIsInstance(state["resets"], int)
+
+    def test_a_reset_discards_the_tail_with_the_count(self):
+        server.api_attack({"id": "inj-direct"})
+        state = server.reset_counter("2026-09-08", "launch")
+        self.assertEqual(state["attacks_blocked"], 0)
+        self.assertEqual(state["recent"], [])
+        self.assertEqual(state["resets"][-1]["discarded_total"], 1)
+
+    def test_the_counter_is_the_length_of_the_ledger(self):
+        before = server._load_counter()["attacks_blocked"]
+        server.api_attack({"id": "inj-direct"})
+        after = server._load_counter()
+        self.assertEqual(after["attacks_blocked"], before + 1)
+        self.assertEqual(after["recent"][-1]["source"], "inj-direct")
 
     def test_an_unknown_case_is_refused(self):
         self.assertFalse(server.api_attack({"id": "no-such-case"})["ok"])

@@ -159,6 +159,9 @@ select{background:var(--raised);color:var(--text);border:1px solid var(--line);
 .bridge{padding:14px 20px 0;background:var(--panel)}
 .bridge h3{margin:0;font-size:15px;font-weight:500}
 .bridge p{margin:4px 0 0;color:var(--muted);font-size:12.5px}
+.bridge .replay{color:var(--faint);font-size:12px}
+.group .btn{position:relative}
+.group .btn:hover{border-color:var(--accent);color:var(--accent)}
 
 /* ---- console ---------------------------------------------------------- */
 .console{padding:14px 20px;background:var(--panel);border-bottom:1px solid var(--line)}
@@ -419,8 +422,11 @@ dialog::backdrop{background:rgba(5,7,10,.8)}
 
 <div class="bridge" id="bridge">
   <h3>Now try to make the AI lie about that receipt.</h3>
-  <p><b id="r-attacks">33</b> attacks, three walls — each column is a different reason the
+  <p><b id="r-attacks">…</b> attacks, three walls — each column is a different reason the
     boundary holds, and only the third one is a check that could ever be switched off.</p>
+  <p class="replay">Click any attack to replay it. The log names the wall that
+    stopped it and shows the receipt digest unmoved — the third column is the
+    one worth pressing, since it is the only wall a model's words reach.</p>
 </div>
 
 <div class="console">
@@ -716,18 +722,44 @@ async function runExplain(){
   if (result.ok) renderExplanation(result);
 }
 
+function logRow(entry){
+  const row = document.createElement('div');
+  const moved = entry.receipt_sha_before !== undefined
+    && entry.receipt_sha_before !== entry.receipt_sha_after;
+  const blocked = entry.blocked !== false;
+  row.innerHTML = `<span class="${blocked ? 'ok' : 'bad'}">${blocked ? 'BLOCKED' : 'PASSED'}</span>
+    <span>${esc(entry.title || entry.id || 'free text')}</span>
+    <span class="col">${esc(entry.column || '')}</span>
+    <span class="ev">${esc((entry.evidence || []).join(' · '))}</span>
+    <span class="ev">receipt_sha ${moved ? 'MOVED' : 'unchanged'}</span>`;
+  return row;
+}
+
+// One ledger: the header counts its length, the log shows its tail. A browser
+// that has just arrived sees what the counter is counting, instead of an empty
+// log beside a header claiming otherwise.
+function renderLog(recent){
+  const log = $('#log');
+  if (!recent || !recent.length){
+    log.innerHTML = '<div class="ev">no attacks run yet</div>';
+    delete log.dataset.seeded;
+    return;
+  }
+  log.innerHTML = '';
+  [...recent].reverse().forEach(entry => log.append(logRow(entry)));
+  // Mark it filled, or the next live line clears the tail it was meant to
+  // continue and the log disagrees with the counter again.
+  log.dataset.seeded = '1';
+}
+
 function logLine(entry){
   const log = $('#log');
   if (log.dataset.seeded !== '1'){ log.innerHTML = ''; log.dataset.seeded = '1'; }
-  const row = document.createElement('div');
-  const shaEqual = entry.receipt_sha_before === entry.receipt_sha_after;
-  row.innerHTML = `<span class="${entry.blocked ? 'ok' : 'bad'}">${entry.blocked ? 'BLOCKED' : 'PASSED'}</span>
-    <span>${esc(entry.title || entry.id || 'free text')}</span>
-    <span class="col">${esc(entry.column)}</span>
-    <span class="ev">${esc((entry.evidence||[]).join(' · '))}</span>
-    <span class="ev">receipt_sha ${shaEqual ? 'unchanged' : 'MOVED'}</span>`;
-  log.prepend(row);
-  if (entry.counter) setCounter(entry.counter);
+  log.prepend(logRow(entry));
+  if (entry.counter){
+    setCounter(entry.counter);
+    if (entry.counter.recent) log.dataset.seeded = '1';
+  }
 }
 
 async function showSabotage(){
@@ -1028,6 +1060,7 @@ function enterApp(){
   const state = await api('/api/state');
   currentMode = state.mode;
   setCounter(state);
+  renderLog(state.recent);
   $('#mode').textContent = state.mode;
   $('#mode').dataset.mode = state.mode;
   await loadGroups();
