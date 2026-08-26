@@ -34,8 +34,15 @@ class Numbers(unittest.TestCase):
                       README)
         self.assertIn(f"silently released  {summary['silently_released']}", README)
         passed = summary["cases"] - summary["blocked"]
-        self.assertIn(f"{passed} attacks reach the consumer", README.replace(
-            "Fourteen", "14"))
+        # The sentence opens with a word; the check should not care which.
+        spelled = {10: "Ten", 11: "Eleven", 12: "Twelve", 13: "Thirteen",
+                   14: "Fourteen", 15: "Fifteen", 16: "Sixteen",
+                   17: "Seventeen", 18: "Eighteen", 19: "Nineteen",
+                   20: "Twenty"}
+        wanted = [f"{passed} attacks reach the consumer"]
+        if passed in spelled:
+            wanted.append(f"{spelled[passed]} attacks reach the consumer")
+        self.assertTrue(any(phrase in README for phrase in wanted), wanted)
 
     WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five"}
 

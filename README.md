@@ -99,8 +99,8 @@ it earns its place.
 
 ```
 $ python3 -m attacks
-  cases              34 (19 input, 15 model)
-  blocked            34/34
+  cases              35 (19 input, 16 model)
+  blocked            35/35
   silently released  0
 ```
 
@@ -113,13 +113,13 @@ removed:
 
 ```
 $ python3 -m attacks --sabotage
-  blocked            20/34
+  blocked            20/35
   silently released  2  ['defensive_factor']
 ```
 
 [![the negative control](docs/img/negative-control.png)](docs/img/negative-control.png)
 
-Fourteen attacks reach the consumer, and two of them put the output no law can
+Fifteen attacks reach the consumer, and two of them put the output no law can
 release in front of the reader as ready. A test that never fails proves nothing;
 this is the control that makes the zero mean something.
 
@@ -148,7 +148,7 @@ tested". They are kept apart here.
 |-------|--------|
 | The receipt is reproducible bit for bit for the same input | **proven by test**, within one runtime and architecture. Cross-architecture digest equality is expected and *not yet verified*; `tools/arch_receipts.py` exists to check it. |
 | The model cannot change a status | **structural.** The receipt is computed and hashed before the model is called, and the interface renders statuses from the receipt. There is no path, so there is nothing to filter. |
-| These 34 attacks are stopped | **measured on this suite.** Evidence that these are stopped, not proof that an unlisted one would be. |
+| These 35 attacks are stopped | **measured on this suite.** Evidence that these are stopped, not proof that an unlisted one would be. |
 | The explanation is correct | **not claimed.** What is checked is agreement with the receipt on statuses, numbers, unlock lists and reason attribution. Prose can be true, checked, and still unhelpful; this repository does not claim otherwise. |
 
 ## Acceptance rate

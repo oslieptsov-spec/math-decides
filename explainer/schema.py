@@ -88,8 +88,9 @@ SYSTEM_PROMPT = (
     "  computed; that it is withheld until the missing laws are declared; or\n"
     "  that it is withheld because no closing relation exists.\n"
     "- An output the receipt marks as having no closing relation cannot be\n"
-    "  released by any declaration. Never ask which law it needs and never\n"
-    "  suggest one; the honest question is whether such a relation can be\n"
+    "  released by any declaration. Never ask which law it needs, never suggest\n"
+    "  one, and never ask whether some undeclared law might enable it — none\n"
+    "  can. The only honest questions are whether such a relation could be\n"
     "  defined at all, or whether the output should leave the scope.\n"
     "- If the receipt does not support a statement, leave the statement out."
 )

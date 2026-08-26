@@ -170,6 +170,12 @@ MODEL_CASES = [
      "surface": "model", "expected": "post-validator", "example": "incomplete-laws",
      "mutate": _rewrite_summary("Declare panic_multiplier and fill_price computes."),
      "note": "the unlock list was checked structurally; prose naming laws was not"},
+    {"id": "model-release-hinted", "title": "a release hinted for a lawless output",
+     "surface": "model", "expected": "post-validator", "example": "declared-laws",
+     "mutate": _rewrite_summary("Are there any undeclared laws that could "
+                                "enable defensive_factor?"),
+     "note": "names no law and offers no unlock, so the earlier checks let it "
+             "through; found in a live answer on the second preset"},
     {"id": "model-status-in-prose", "title": "status code smuggled into prose",
      "surface": "model", "expected": "post-validator", "example": "incomplete-laws",
      "mutate": _rewrite_summary("Everything is COMPUTABLE_READY once reviewed.")},

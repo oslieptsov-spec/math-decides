@@ -115,6 +115,7 @@ harder to reason about than none.
 | numbers | any figure that does not trace back to the receipt (§5) |
 | reason attribution | a reason attached to an output the receipt gives a different one (§6) |
 | law attribution | a law named beside an output that does not require it (§6) |
+| release offers | a sentence that suggests an output with no closing relation could still be released — even when it names no law and offers no unlock (§6) |
 
 Because statuses cannot reach the model except through the receipt, and
 untrusted text never reaches it at all, the prompt-injection classes are closed
@@ -187,6 +188,19 @@ field said `WITHHELD_MISSING_DECLARED_LAW` and the sentence beside it said no
 closing relation exists. Every status echoed correctly, every number traceable,
 and the prose still told the reader an output could never be released when
 declaring two laws would release it. A reader believes the sentence.
+
+A third rule covers the case both of those miss. "Are there any undeclared
+laws that could enable defensive_factor?" names no law, offers no unlock, and
+contradicts the receipt — it came back from a live answer on the second preset,
+past every check that existed. So the check is on the act rather than the
+vocabulary: a sentence naming an output with no closing relation may not talk
+about declaring, unlocking, releasing or enabling it.
+
+The true sentence uses the same words — "declaring further laws will not change
+the status" — so a negation somewhere in the sentence is what separates stating
+the limit from offering a way around it. That is a heuristic and is documented
+as one: an unnegated sentence about a lawless output is refused even where a
+reader would have understood it.
 
 The law rule refuses a true sentence as readily as a false one: "declaring
 `gap_size` will not release `defensive_factor`" is accurate and still refused,

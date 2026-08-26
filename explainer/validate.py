@@ -37,6 +37,36 @@ REASON_PHRASES = {
 }
 
 
+# Suggesting a release for an output that has none is refused in the unlock
+# list already. Prose can do it without naming a law at all — "are there any
+# undeclared laws that could enable it" names none — so the check is on the
+# act, not the vocabulary.
+RELEASE_PHRASES = ("declar", "unlock", "release", "enable", "additional law",
+                   "further law", "more law", "satisf")
+# The same words appear in the true sentence: "declaring further laws will not
+# change the status". A negation somewhere in the sentence is what separates
+# stating the limit from offering a way around it. It is a heuristic, and it is
+# documented as one: an unnegated sentence about a lawless output is refused
+# even if a reader would have understood it.
+NEGATIONS = ("no ", "not", "never", "cannot", "n't", "nothing", "without",
+             "outside the scope", "out of scope")
+
+
+def _check_release_offer(findings, text, receipt, owner=None):
+    lowered = text.lower()
+    if not any(phrase in lowered for phrase in RELEASE_PHRASES):
+        return
+    if any(mark in lowered for mark in NEGATIONS):
+        return
+    named = ([owner] if owner is not None
+             else [n for n in receipt["outputs"] if n in text])
+    for name in named:
+        if receipt["outputs"][name]["status"] == "WITHHELD_NO_DECLARED_LAW":
+            _finding(findings, "RELEASE_SUGGESTED_FOR_LAWLESS_OUTPUT",
+                     f"{name}: no declaration releases it, and this sentence "
+                     f"suggests one might — {text.strip()[:80]!r}")
+
+
 def _mentioned_laws(text):
     return {law for law in domain.LAWS if law in text}
 
@@ -204,10 +234,13 @@ def validate(answer, receipt):
             for sentence in _sentences(entry.get("restated_reason", "")):
                 _check_reasons(findings, sentence, receipt, owner=entry["name"])
                 _check_laws(findings, sentence, receipt, owner=entry["name"])
+                _check_release_offer(findings, sentence, receipt,
+                                     owner=entry["name"])
     for text in [answer["summary"], *answer["next_questions"]]:
         if isinstance(text, str):
             for sentence in _sentences(text):
                 _check_reasons(findings, sentence, receipt)
                 _check_laws(findings, sentence, receipt)
+                _check_release_offer(findings, sentence, receipt)
 
     return findings
