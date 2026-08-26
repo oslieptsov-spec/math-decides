@@ -219,7 +219,9 @@ body.tour section{min-height:0;padding:20px 24px}
 body.tour .console{padding-top:20px}
 /* A scene has room the dashboard does not: show the whole request rather than
    cutting it off mid-line. */
-body.tour textarea{min-height:340px}
+/* flex:1 from the dashboard would win over an explicit height, and the box
+   would go on cutting the declaration in half. */
+body.tour textarea{flex:none;min-height:0;resize:none;overflow:hidden}
 .pulse{outline:1px solid var(--accent);outline-offset:2px;
        animation:pulse 1.6s ease-in-out infinite}
 @keyframes pulse{0%,100%{outline-color:var(--accent)}50%{outline-color:transparent}}
@@ -315,7 +317,7 @@ dialog::backdrop{background:rgba(5,7,10,.8)}
       <button class="btn primary" id="hero-tour">▶ Walk me through it</button>
       <button class="btn" id="hero-skip">Skip — show everything</button>
     </div>
-    <p class="foot">six steps, about ninety seconds · exit at any point</p>
+    <p class="foot"><span id="hero-steps">…</span> · exit at any point</p>
     <p class="stack">built with <b>Nemotron</b> · <b>NVIDIA NIM</b> · open source (MIT)</p>
   </div>
 </div>
@@ -894,7 +896,22 @@ function tourCard(index, step){
     </div></div>`;
   (anchor?.parentNode === document.body ? anchor : anchor?.closest('main') || anchor)
     ?.insertAdjacentHTML('afterend', html);
-  $('#t-next').onclick = () => (step.done ? tourEnd() : tourGo(index + 1));
+  // A step that asks for a press must not have a second door out of it. Next
+  // presses the same control the card points at, so a visitor who takes the
+  // button still sees the receipt appear rather than finding it already there.
+  $('#t-next').onclick = () => {
+    if (step.done) return tourEnd();
+    if (step.pulse){
+      if (tourHandler){
+        document.removeEventListener('click', tourHandler, true);
+        tourHandler = null;
+      }
+      document.querySelector(step.pulse)?.click();
+      setTimeout(() => tourGo(index + 1), 900);
+      return;
+    }
+    tourGo(index + 1);
+  };
   if ($('#t-exit')) $('#t-exit').onclick = tourEnd;
 }
 
@@ -905,12 +922,14 @@ async function tourGo(index){
   const step = TOUR[index];
 
   setScene(step.scene);
+  fitRequest();
   if (step.before) await step.before();
   if (step.preset){
     $('#preset').value = step.preset;
     loadPreset();
     // A step that asks for the press must not have answered already.
     if (!step.clear) await validate();
+    fitRequest();
   }
   if (step.clear) clearPanels();
 
@@ -952,6 +971,18 @@ async function tourGo(index){
   }
 }
 
+const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six',
+                      'seven', 'eight', 'nine', 'ten'];
+
+function fitRequest(){
+  // The point of the scene is what was declared; a box that cuts the block in
+  // half hides the pointe. Grow to the content while a scene is on.
+  const box = $('#request');
+  if (!document.body.classList.contains('tour')){ box.style.height = ''; return; }
+  box.style.height = 'auto';
+  box.style.height = (box.scrollHeight + 6) + 'px';
+}
+
 function enterApp(){
   $('#hero0')?.remove();
   document.body.classList.remove('hero-open');
@@ -969,6 +1000,9 @@ function enterApp(){
   TOUR_COPY = Object.fromEntries(
     (await api('/api/tour')).scenes.map(scene => [scene.id, scene]));
   loadPreset();
+  // The tour's length is the only place a step count exists.
+  $('#hero-steps').textContent =
+    `${NUMBER_WORDS[TOUR.length] || TOUR.length} steps, about ninety seconds`;
 
   // State 0 is the default: a cold visitor gets one choice, not a wall of data.
   // ?tour=0 skips it and lands on the answered screen; ?tour=N opens step N;

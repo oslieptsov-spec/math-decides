@@ -69,6 +69,19 @@ class TermLadder(unittest.TestCase):
 
 
 class NoCountIsWrittenByHand(unittest.TestCase):
+    """Including the one that greets the visitor."""
+
+    def test_the_step_count_is_not_written_into_the_page(self):
+        html = (ROOT / "web/index.html").read_text(encoding="utf-8")
+        found = re.search(r"\b(one|two|three|four|five|six|seven|eight|\d+)\s+steps\b",
+                          html, re.IGNORECASE)
+        self.assertIsNone(found, f"a step count is written into the page: "
+                                 f"{found.group(0) if found else ''}")
+
+    def test_the_page_renders_it_from_the_scene_list(self):
+        html = (ROOT / "web/index.html").read_text(encoding="utf-8")
+        self.assertIn("NUMBER_WORDS[TOUR.length]", html)
+
     """Every figure in the copy is a placeholder the page fills from the domain."""
 
     ALLOWED = {"three", "one"}   # the three walls, and "one screen"
