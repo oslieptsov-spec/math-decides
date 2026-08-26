@@ -271,6 +271,12 @@ body.tour textarea{flex:none;min-height:0;resize:none;overflow:hidden}
 dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);
        border-radius:3px;max-width:760px;width:92%;padding:0}
 dialog::backdrop{background:rgba(5,7,10,.8)}
+/* The recording is a scene like any other when the tour reaches it; the modal
+   is what the free-mode button opens. Same markup, two homes. */
+.sabotage-scene{max-width:1180px;margin:0 auto;padding:18px 24px}
+.sabotage-scene .dlg-head{border:1px solid var(--line);border-radius:2px 2px 0 0}
+.sabotage-scene .dlg-body{border:1px solid var(--line);border-top:0;
+                          border-radius:0 0 2px 2px;max-height:none}
 .dlg-head{padding:12px 16px;border-bottom:1px solid var(--line);
           background:repeating-linear-gradient(135deg,#1c1608,#1c1608 10px,#221b0a 10px,#221b0a 20px)}
 .dlg-head b{color:var(--amber);font-family:var(--mono);font-size:12px;letter-spacing:.05em}
@@ -412,6 +418,8 @@ dialog::backdrop{background:rgba(5,7,10,.8)}
     <div id="explanation"><p class="empty">no explanation yet</p></div>
   </section>
 </main>
+
+<div class="sabotage-scene" id="panel-sabotage" style="display:none"></div>
 
 <div class="result" id="result">
   <span class="tag">RESULT</span>
@@ -762,39 +770,63 @@ function logLine(entry){
   }
 }
 
-async function showSabotage(){
-  const rec = await api('/api/sabotage');
-  if (!rec.available){ $('#dlg-body').innerHTML = '<p class="empty">no recording available</p>'; }
-  else {
-    $('#dlg-head').textContent = rec.headline + ' — recorded replay, not a live switch';
-    // Failures first. The cases that get through are the whole point of the
-    // recording; a viewer should not have to scroll past twenty successes to
-    // find out what the guardrail was actually holding back.
-    const row = c => `<div class="case">
-        <span style="min-width:64px;color:${c.blocked ? 'var(--ready)' : 'var(--red)'}">
-          ${c.blocked ? 'blocked' : 'PASSED'}</span>
-        <span style="flex:1">${esc(c.title)}</span>
-        <span style="color:var(--red)">${c.silently_released.length ? 'released ' + esc(c.silently_released.join(', ')) : ''}</span>
-      </div>`;
-    const passed = rec.cases.filter(c => !c.blocked);
-    const held = rec.cases.filter(c => c.blocked);
-    $('#dlg-body').innerHTML =
-      `<div class="dlg-split">${passed.length} reach the consumer without the post-validator</div>`
+function sabotageHtml(rec){
+  const row = c => `<div class="case">
+      <span style="min-width:64px;color:${c.blocked ? 'var(--ready)' : 'var(--red)'}">
+        ${c.blocked ? 'blocked' : 'PASSED'}</span>
+      <span style="flex:1">${esc(c.title)}</span>
+      <span style="color:var(--red)">${c.silently_released.length ? 'released ' + esc(c.silently_released.join(', ')) : ''}</span>
+    </div>`;
+  const passed = rec.cases.filter(c => !c.blocked);
+  const held = rec.cases.filter(c => c.blocked);
+  return {
+    head: `<b>${esc(rec.watermark)}</b><p>${esc(rec.headline)} — recorded replay, not a live switch</p>`,
+    body: `<div class="dlg-split">${passed.length} reach the consumer without the post-validator</div>`
       + passed.map(row).join('')
       + `<div class="dlg-split">${held.length} still blocked — structure and schema do not depend on it</div>`
       + `<div class="dlg-held">
            <span>Every one of them is stopped before a model's words are read at all.</span>
            <button class="btn" id="dlg-expand">show all ${held.length}</button>
          </div>
-         <div class="dlg-roll" id="dlg-roll">${held.map(row).join('')}</div>`;
-    $('#dlg-expand').onclick = () => {
-      const roll = $('#dlg-roll');
-      roll.classList.toggle('open');
-      $('#dlg-expand').textContent = roll.classList.contains('open')
-        ? 'hide' : `show all ${held.length}`;
-    };
+         <div class="dlg-roll" id="dlg-roll">${held.map(row).join('')}</div>`
+  };
+}
+
+function wireExpand(held){
+  const button = $('#dlg-expand');
+  if (!button) return;
+  button.onclick = () => {
+    const roll = $('#dlg-roll');
+    roll.classList.toggle('open');
+    button.textContent = roll.classList.contains('open') ? 'hide' : `show all ${held}`;
+  };
+}
+
+async function showSabotage(){
+  const rec = await api('/api/sabotage');
+  if (!rec.available){
+    $('#dlg-body').innerHTML = '<p class="empty">no recording available</p>';
+  } else {
+    const parts = sabotageHtml(rec);
+    $('#dlg-mark').innerHTML = rec.watermark;
+    $('#dlg-head').textContent = rec.headline + ' — recorded replay, not a live switch';
+    $('#dlg-body').innerHTML = parts.body;
+    wireExpand(rec.cases.filter(c => c.blocked).length);
   }
   $('#dlg').showModal();
+}
+
+async function renderSabotageScene(){
+  const rec = await api('/api/sabotage');
+  const host = $('#panel-sabotage');
+  if (!rec.available){
+    host.innerHTML = '<p class="empty">no recording available</p>';
+    return;
+  }
+  const parts = sabotageHtml(rec);
+  host.innerHTML = `<div class="dlg-head">${parts.head}</div>
+                    <div class="dlg-body">${parts.body}</div>`;
+  wireExpand(rec.cases.filter(c => c.blocked).length);
 }
 
 async function showRejected(){
@@ -856,7 +888,7 @@ $('#sabotage').addEventListener('click', showSabotage);
 const STAGE = {
   intro: '.intro', 'panel-1': '#panel-1', 'panel-2': '#panel-2',
   'panel-3': '#panel-3', result: '.result', bridge: '.bridge',
-  console: '.console', footer: 'footer'
+  console: '.console', sabotage: '#panel-sabotage', footer: 'footer'
 };
 const PANELS = ['panel-1', 'panel-2', 'panel-3'];
 
@@ -886,10 +918,14 @@ const TOUR = [
    before: async () => { tourHoldsExplanation = false; await runExplain(); }},
   {copy: 'contrast', scene: ['panel-1', 'panel-2', 'result'], preset: 'declared-laws',
    spot: '#out-defensive_factor'},
+  // No advanceOn: a chip click is a replay, not a page turn. A judge pressing
+  // "withheld output declared ready" asked to see that attack blocked, and
+  // being thrown into the disabled-guardrail screen answers a question they
+  // did not ask — with red PASSED rows that read as a system failing live.
   {copy: 'attack', scene: ['bridge', 'console'],
-   pulse: '[data-attack="model-release"]',
-   advanceOn: '[data-attack="model-release"]', autofire: true},
-  {copy: 'sabotage', scene: [], sabotage: true},
+   pulse: '[data-attack="model-release"]', autofire: true},
+  {copy: 'sabotage', scene: ['sabotage'],
+   before: renderSabotageScene},
   {copy: 'together', scene: 'all', done: true}
 ];
 
@@ -999,21 +1035,6 @@ async function tourGo(index){
     fitRequest();
   }
   if (step.clear) clearPanels();
-
-  if (step.sabotage){
-    document.querySelector('.tour-card')?.remove();
-    await showSabotage();
-    const band = TOUR_COPY[step.copy] || {};
-    const bandFacts = tourFacts(step);
-    $('#dlg-body').insertAdjacentHTML('afterbegin',
-      `<div class="tour-band"><b>${esc(band.title || '')}</b><br>
-        ${esc(fill(band.l1 || '', bandFacts))}<br>
-        ${esc(fill(band.l2 || '', bandFacts))}<br>
-        <span style="color:var(--muted)">${esc(fill(band.l3 || '', bandFacts))}</span>
-        <br><br><button class="btn primary" id="t-next-band">next</button></div>`);
-    $('#t-next-band').onclick = () => { $('#dlg').close(); tourGo(index + 1); };
-    return;
-  }
 
   if (step.spot) document.querySelector(step.spot)?.classList.add('spot');
   if (step.pulse) document.querySelector(step.pulse)?.classList.add('pulse');
