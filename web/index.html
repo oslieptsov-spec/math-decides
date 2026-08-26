@@ -179,12 +179,23 @@ footer pre{background:var(--raised);border:1px solid var(--line);border-radius:2
 footer .note{color:var(--faint);margin-top:8px}
 
 /* ---- state 0 and the tour -------------------------------------------- */
-.hero0{position:fixed;inset:0;z-index:80;background:var(--bg);display:flex;
+/* Opaque, literal, and nothing renders behind it: state 0 is a screen, not a
+   veil over a loaded page. The first model call waits for the visitor to ask
+   for it — a landing screen has no business spending a budget nobody chose. */
+.hero0{position:fixed;inset:0;z-index:80;background:#0e1116;display:flex;
        align-items:center;justify-content:center;padding:24px}
-.hero0 .inner{max-width:640px}
+body.hero-open{overflow:hidden}
+.hero0 .inner{max-width:640px;transform:translateY(-4vh)}
 .hero0 .mark{font-family:var(--mono);font-size:13px;letter-spacing:.02em;color:var(--muted)}
 .hero0 .mark b{color:var(--accent)}
-.hero0 h1{margin:14px 0 0;font-size:30px;line-height:1.25;font-weight:500;letter-spacing:-.01em}
+/* An explicit chain, so the screen every judge sees does not depend on which
+   face their machine happens to prefer. Metrics are pinned in ch and rem so a
+   different fallback changes the letterforms and not the layout. */
+.hero0 h1{margin:14px 0 0;font-family:var(--sans);font-size:clamp(23px,2.2vw,30px);
+          line-height:1.25;font-weight:500;letter-spacing:-.01em;max-width:22ch}
+.hero0 .stack{margin-top:18px;font-family:var(--mono);font-size:11px;
+              letter-spacing:.03em;color:var(--faint)}
+.hero0 .stack b{color:var(--muted);font-weight:500}
 .hero0 .why{margin:16px 0 0;color:var(--muted);font-size:14px;max-width:58ch}
 .hero0 .why b{color:var(--text);font-weight:500}
 .hero0 .acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
@@ -259,7 +270,7 @@ dialog::backdrop{background:rgba(5,7,10,.8)}
 .readonly-note{display:none;color:var(--faint);font-size:11px;margin-bottom:8px}
 </style>
 </head>
-<body>
+<body class="hero-open">
 
 <div class="hero0" id="hero0">
   <div class="inner">
@@ -273,6 +284,7 @@ dialog::backdrop{background:rgba(5,7,10,.8)}
       <button class="btn" id="hero-skip">Skip — show everything</button>
     </div>
     <p class="foot">six steps, about ninety seconds · exit at any point</p>
+    <p class="stack">built with <b>Nemotron</b> · <b>NVIDIA NIM</b> · open source (MIT)</p>
   </div>
 </div>
 
@@ -784,7 +796,10 @@ async function tourGo(index){
   }
 }
 
-function enterApp(){ $('#hero0').remove(); }
+function enterApp(){
+  $('#hero0')?.remove();
+  document.body.classList.remove('hero-open');
+}
 
 (async function init(){
   loadPreset();
@@ -796,19 +811,21 @@ function enterApp(){ $('#hero0').remove(); }
   await loadGroups();
 
   // State 0 is the default: a cold visitor gets one choice, not a wall of data.
-  // ?tour=0 and the deep links skip it — a screenshot and a shared frame should
-  // land on the thing they name.
-  // ?tour=0 skips state 0 entirely; ?tour=N opens the app at step N, which is
-  // how a screenshot or a shared link lands on the frame it names.
+  // ?tour=0 skips it and lands on the answered screen; ?tour=N opens step N;
+  // the hash links land on the frame they name. All of them skip state 0,
+  // because a shared link is already a choice made.
   const params = new URLSearchParams(location.search);
   const at = params.get('tour');
   const step = at === null ? null : parseInt(at, 10);
   // Wire the buttons before anything can remove them: enterApp() deletes the
   // hero, and reaching for its children afterwards ends the whole init.
-  $('#hero-skip').onclick = () => enterApp();
+  $('#hero-skip').onclick = async () => { enterApp(); await validate(); };
+  // The tour opens on an unvalidated screen on purpose: step one asks for the
+  // press, and a screen that has already answered has nothing left to ask.
   $('#hero-tour').onclick = async () => { enterApp(); await tourGo(0); };
   if (step !== null || location.hash) enterApp();
   if (step) { tourAutoFire = true; await validate(); await tourGo(step - 1); return; }
+  if (step === null && !location.hash) return;
 
   // Deep link for the recording, opened before the model is asked anything —
   // the replay does not depend on a live path and should not wait for one.
