@@ -201,6 +201,11 @@ the same OpenAI-compatible interface, so the same client reaches both:
 NVIDIA_BASE_URL=http://<your-nim>:8000/v1 make ui
 ```
 
+`tools/readback.py` runs the same checks against that endpoint and writes a
+report — receipts, the offline suite, and acceptance with its findings — so
+that agreement between two decoders is recorded rather than assumed
+([docs/H100.md](docs/H100.md) is the session runbook).
+
 The mode chip on the page names which path answered, and provenance is recorded
 per answer: model, build, temperature, path. The endpoint supplies no build
 identifier, so a provider-side model update is visible in behaviour rather than

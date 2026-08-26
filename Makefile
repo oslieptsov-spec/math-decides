@@ -36,3 +36,6 @@ record:
 
 sync:
 	python3 tools/sync_readme.py
+
+readback:
+	python3 tools/readback.py --base-url $(BASE_URL) --runs $(or $(RUNS),10)
