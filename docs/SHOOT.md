@@ -49,9 +49,14 @@ Deep links for deterministic takes: `#rejected`, `#sabotage`, and `?tour=N` for
 any step of the guided walk. `?tour=0` skips state 0 and lands on the full
 screen — that is the one to use for README stills.
 
-The guided tour is this script made interactive: the six cards are these six
-scenes. If a scene changes here, change the card with it, or the video and the
-page will start telling different stories.
+The guided tour is this script made interactive, and it is staged rather than
+dimmed: each step decides what exists on screen, so every frame is already a
+clean shot with nothing else competing in it. Seven steps — the six scenes
+above plus the assembly at the end, where the whole dashboard appears and the
+viewer recognises every part of it.
+
+If a scene changes here, change the card with it, or the video and the page
+will start telling different stories.
 
 ## 4. After the take
 
