@@ -164,6 +164,13 @@ is a different measurement, not a better or worse model. It has to be re-run
 against a self-hosted NIM for the same reason: guided decoding there is not the
 hosted endpoint's.
 
+## How it is built
+
+[DOCS.md](DOCS.md) is the implementation companion: the order of operations, the
+receipt's canonical form and the scope of its reproducibility claim, the full
+post-validation contract, the number-admission rules with their documented
+limits, provenance, and a list of what is not claimed.
+
 ## Adapt it to your domain
 
 The domain is one file: [`gate/domain.py`](gate/domain.py). Four laws, four
@@ -196,7 +203,7 @@ in a version — which is exactly what the acceptance rate above is for.
 ## Reproducing everything
 
 ```bash
-make test         # 144 tests, offline, no key required
+make test         # 154 tests, offline, no key required
 make attacks      # the suite
 make sabotage     # the negative control
 make results      # regenerate attacks/RESULTS.md

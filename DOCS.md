@@ -1,0 +1,271 @@
+# How the boundary is built
+
+The README argues the case. This is the part a reader implements from: what is
+in the receipt, what the post-validator checks, where each check gives up, and
+which claims are scoped to what was actually run.
+
+---
+
+## 1. Order of operations
+
+```
+request ──▶ schema ──▶ closure ──▶ compute ──▶ canonicalise ──▶ receipt (sealed)
+                                                                     │
+                                                          ┌──────────┘
+                                                          ▼
+                                              prompt ──▶ model ──▶ answer
+                                                                     │
+                                                          post-validation
+                                                                     │
+                                              accepted ─────┬─── refused
+                                                            │        │
+                                                            │   repair once
+                                                            │        │
+                                                            │   refused again
+                                                            ▼        ▼
+                                                        shown    template render
+```
+
+The ordering carries the whole argument. The receipt exists, is complete, and
+is hashed before a prompt is constructed. Nothing downstream writes to it.
+The interface renders statuses from the receipt, never from the answer, so an
+answer that disagrees is a rejected answer and not a changed status.
+
+## 2. The domain
+
+`gate/domain.py` declares four laws, four outputs, and a map from each output
+to the laws that close it:
+
+| output | requires |
+|--------|----------|
+| `slippage_bps` | `book_depth_profile` |
+| `fill_price` | `book_depth_profile`, `gap_size` |
+| `liquidation_risk` | `book_depth_profile`, `gap_size`, `panic_multiplier`, `liquidation_threshold` |
+| `defensive_factor` | — *no closing relation exists* |
+
+The empty requirement is not an omission. It is the claim that the quantity
+follows from nothing declarable, and it produces a status of its own. Three
+statuses an output can carry, and one it cannot reach:
+
+- `COMPUTABLE_READY` — every required law is declared and the value is computed;
+- `WITHHELD_MISSING_DECLARED_LAW` — declare the laws and it computes;
+- `WITHHELD_NO_DECLARED_LAW` — no declaration will ever release it.
+
+`unlock_list()` reports the second kind under a separate key, so an explainer
+can say the output is unreachable instead of proposing a way to fix it.
+
+`WITHHELD_UPSTREAM` is implemented and currently unreachable: every output
+requires at least the laws its upstreams require, so law closure subsumes value
+closure. `test_upstream_is_subsumed` pins that containment — an adapted domain
+that breaks it fails there first, and the engine's check starts earning its
+keep.
+
+## 3. The receipt
+
+The receipt carries statuses, reason codes, values with units, the missing-law
+list per output, the unlock list, the unreachable list, the declared and
+undeclared law names, `input_hash`, and `receipt_sha` over its own body.
+
+It deliberately does **not** carry the request's free text. Untrusted fields
+are recorded as present and committed to by a content hash:
+
+```json
+"untrusted_input": {
+  "fields_present": ["description"],
+  "content_sha256": {"description": "de22553f…"},
+  "content_forwarded": false
+}
+```
+
+An instruction hidden in `description` therefore cannot reach the model — not
+because a filter caught it, but because nothing carries it there. This is why
+the injection cases in the suite are filed under *structure* rather than under
+a defence.
+
+### Canonicalisation
+
+A receipt is a claim about an input, and the claim is only as stable as its
+serialisation. Four degrees of freedom are fixed: key order (sorted), separators
+(no whitespace), non-ASCII (escaped), and float precision (12 significant
+digits, `-0.0` collapsed to `0.0`).
+
+The rounding is the one that matters. Arithmetic that differs in the last bit —
+a different libm, a reordered sum — would otherwise produce a different receipt
+for the same input.
+
+**Scope of the claim.** Receipts are reproducible bit for bit within one runtime
+and architecture, verified across processes and hash seeds. Digest equality
+*across* architectures is expected — every operation involved is IEEE-754 and
+the rounding is explicit — but expectation is not evidence, and it is not
+claimed. `tools/arch_receipts.py` prints the digests to compare on a second
+machine.
+
+## 4. The post-validation contract
+
+The model's answer is compared against the receipt, and any disagreement
+refuses the whole answer. Nothing is patched: a half-corrected explanation is
+harder to reason about than none.
+
+| check | what it refuses |
+|-------|-----------------|
+| status echo | any output whose status differs from the receipt's, is duplicated, omitted, or unknown |
+| unlock list | an unlock the receipt does not list, a law the receipt did not name for that output, or any unlock offered for an output with no closing relation |
+| unreachable list | any disagreement with the receipt's own |
+| status literals in prose | a status code anywhere in `summary`, `restated_reason` or `next_questions` — statuses live in the status field, which turns "did it quietly call a withheld output ready" into a string search |
+| numbers | any figure that does not trace back to the receipt (§5) |
+| reason attribution | a reason attached to an output the receipt gives a different one (§6) |
+| law attribution | a law named beside an output that does not require it (§6) |
+
+Because statuses cannot reach the model except through the receipt, and
+untrusted text never reaches it at all, the prompt-injection classes are closed
+upstream. What remains for this contract is the model's own drift, which is the
+failure a language model actually produces.
+
+**On refusal:** one repair attempt with the findings, then the deterministic
+renderer answers and says so. `render.render()` satisfies the same validator it
+backs up — a test asserts it.
+
+## 5. Number admission
+
+One receipt number has many honest spellings: `6.59533333334` bps is also
+`6.6`, also `0.000659…` as a fraction, also `0.066%`. A permissive rule lets an
+invented figure through under cover of formatting; a rigid one refuses correct
+prose for rounding.
+
+The rule:
+
+1. every receipt number generates a family through a declared unit map —
+   nothing is converted by guesswork:
+
+   | unit | admissible forms |
+   |------|------------------|
+   | `bps` | itself, ÷10⁴ (fraction), ÷10² (percent) |
+   | `probability` | itself, ×10² (percent) |
+   | `price`, none | itself |
+
+2. comparison is **decimal text at a stated precision, never a tolerance**. An
+   epsilon loose enough to absorb arithmetic noise is loose enough to absorb a
+   wrong final digit;
+3. a written number is admitted when it agrees with a family member at the
+   receipt's own precision, or when rounding that member to exactly as many
+   significant digits as were written reproduces it;
+4. rounding to a single significant digit is refused unless the value is exact,
+   so `6.595…` may be quoted as `6.6`, never as `7`;
+5. spelled-out cardinals are mapped to digits and checked like any other number.
+   Leaving them unmapped is worse than refusing them: an unmatched word is
+   invisible to a regex, so "two outputs are withheld" would pass a check it
+   never underwent;
+6. anything unparseable is refused rather than skipped.
+
+Structural counts — total outputs, computed, withheld, declared and undeclared
+laws — are admitted so that the most natural sentence in an explanation is not
+refused. That set is kept deliberately small.
+
+**Documented limits.** A ratio, an ordinal, or a locale that separates decimals
+with a comma is refused even when the claim is true. And admission is
+*membership, not comprehension*: a count that is wrong for its sentence but
+right somewhere else in the receipt is admitted. Dependency lengths used to be
+in the admissible set, and they are what once admitted "two outputs are
+withheld" over a receipt withholding three.
+
+## 6. Attribution
+
+The two withheld statuses differ in the only way that matters — one is
+releasable and the other never is — and the prompt mandates their English. So a
+sentence may use those phrasings, but every reason it invokes must belong to an
+output it names, and every law it names must be one that output requires.
+
+This was found in a screenshot of a live answer, not by the suite: the status
+field said `WITHHELD_MISSING_DECLARED_LAW` and the sentence beside it said no
+closing relation exists. Every status echoed correctly, every number traceable,
+and the prose still told the reader an output could never be released when
+declaring two laws would release it. A reader believes the sentence.
+
+The law rule refuses a true sentence as readily as a false one: "declaring
+`gap_size` will not release `defensive_factor`" is accurate and still refused,
+because a lawless output has no business appearing beside a law name. Fail-closed
+costs a phrasing; the alternative costs the guarantee.
+
+## 7. Provenance
+
+Every answer records what produced it: `model`, `build`, `temperature`, `path`
+(`api-catalog`, `nim`, or `canned`), the response id, and whether reasoning was
+returned. The explanation is **bound** to a receipt digest and is not
+reproducible from it — a language model is not a deterministic function, and the
+page says so in its footer.
+
+The endpoint supplies no build identifier. A provider-side model update is
+therefore visible in behaviour rather than in a version, which is what the
+acceptance rate is for: `tools/calibrate.py` measures how often a first answer
+survives post-validation, and a drop in that rate is the instrument that would
+notice. It calibrates *a model on a serving stack* and is not a ranking
+statistic.
+
+Reasoning is switched off (`chat_template_kwargs: {"thinking": false}`). A
+reasoning trace is prose no schema covers, and prose the validator does not see
+must not be shown; switching it off removes the channel rather than policing it.
+
+## 8. The attack suite
+
+Two surfaces, kept apart because one number mixing them says nothing. Input
+cases go at the gate with crafted requests; model cases go at the explainer with
+adversarial answers delivered through a fake transport, so the whole suite runs
+offline with no key and no GPU.
+
+Three columns, and the difference matters more than the total:
+
+- **structure** — no path exists;
+- **schema** — refused at the door, or an answer that never decoded;
+- **post-validator** — well-formed and disagreeing with the receipt.
+
+Only the third is a check rather than an absence, so the suite proves it earns
+its place: with post-validation removed, exactly the cases filed under it get
+through, and two of them put `defensive_factor` in front of a consumer as ready.
+Four tests hold that correspondence, including one that fails if a case is filed
+in a column that is not the one that stops it — a defect this suite committed
+twice against itself before the test existed.
+
+The published statistic is **silently released**: outputs presented as ready
+that the receipt does not mark ready. Blocking counts successes, which is the
+easy half.
+
+## 9. Adapting the domain
+
+Edit `gate/domain.py`. The engine, the receipt, the explainer contract and the
+attack suite follow without changes:
+
+1. name your laws and the parameters each declares;
+2. name your outputs and the laws each requires;
+3. keep one output with **no** closing relation — it costs nothing and it is the
+   case that separates a system that refuses honestly from one that obliges;
+4. run `python3 -m gate.domain` — it self-checks the declaration;
+5. run `make test`.
+
+The explainer's schema and prompt are generated from the domain, so the enum of
+output names, the unlock vocabulary and the status ladder all move with it.
+
+## 10. What is not claimed
+
+- **Explanation correctness.** Not claimed. What is checked is agreement with
+  the receipt on statuses, numbers, unlock lists and attribution. Prose can be
+  true, checked, and unhelpful.
+- **Attack coverage.** The suite is evidence that these attacks are stopped, not
+  proof that an unlisted one would be.
+- **Cross-architecture digests.** Expected, unverified, and therefore unclaimed.
+- **The production kernel.** There is none here. This is a public-safe surrogate
+  domain with synthetic data, built so the pattern can be read without trusting
+  the domain.
+- **Model quality.** The acceptance rate calibrates a pairing, not a model.
+
+## 11. Reproducing
+
+```bash
+make test                 # offline, no key
+make attacks              # the suite
+make sabotage             # the negative control
+make results              # regenerate attacks/RESULTS.md
+make record               # refresh canned answers and the recording (needs a key)
+make calibrate RUNS=10    # acceptance rate (needs a key)
+python3 tools/arch_receipts.py   # digests, for comparison on a second machine
+RUN_LIVE=1 python3 -m unittest tests.test_explainer.Live
+```
