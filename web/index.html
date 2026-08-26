@@ -97,7 +97,13 @@ select{background:var(--raised);color:var(--text);border:1px solid var(--line);
 .out{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:baseline;
      padding:9px 0;border-bottom:1px solid var(--line)}
 .out .name{font-family:var(--mono);font-size:13px}
-.out .val{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:right}
+.out .val{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:right;
+          transition:opacity .45s ease}
+/* The one animation a scene gets: when a status changes, the chip travels from
+   the colour it had to the colour it earned, and the value writes itself in.
+   Instant replacement is correct and unreadable — the flip is the moment the
+   contrast scene exists for. */
+.out .val.arriving{opacity:0}
 .out .why{grid-column:1/-1;font-family:var(--mono);font-size:11px;color:var(--faint)}
 .out .why,.unlock,.summary,.reason,.rej,.log div{overflow-wrap:anywhere}
 .status{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.05em;
@@ -583,15 +589,22 @@ function setResultAi(result){
 
 function renderReceipt(receipt){
   lastReceipt = receipt;
+  const before = lastReceipt && lastReceipt.receipt_sha !== receipt.receipt_sha
+    ? Object.fromEntries(Object.entries(lastReceipt.outputs)
+        .map(([k, v]) => [k, v.status]))
+    : null;
   const order = Object.keys(receipt.outputs).sort();
   const rows = order.map(name => {
     const o = receipt.outputs[name];
+    const was = before && before[name] !== o.status ? before[name] : null;
     const value = o.value === null ? '—'
       : (typeof o.value === 'number' ? o.value.toFixed(6) : o.value);
     const missing = o.missing_laws.length ? 'missing: ' + o.missing_laws.join(', ') : o.reason_code;
     return `<div class="out" id="out-${name}">
-      <div class="name">${esc(name)}<span class="status" data-s="${o.status}">${o.status}</span></div>
-      <div class="val">${esc(value)}${o.unit ? ' <span style="color:var(--faint)">'+esc(o.unit)+'</span>' : ''}</div>
+      <div class="name">${esc(name)}<span class="status" data-s="${was || o.status}"
+           data-to="${o.status}">${o.status}</span></div>
+      <div class="val${was ? ' arriving' : ''}">${esc(value)}${
+        o.unit ? ' <span style="color:var(--faint)">'+esc(o.unit)+'</span>' : ''}</div>
       <div class="why">${esc(missing)}</div></div>`;
   }).join('');
 
@@ -615,6 +628,17 @@ function renderReceipt(receipt){
      <div class="sha">receipt_sha <b>${short(receipt.receipt_sha)}</b>
        <button class="btn" data-copy="${receipt.receipt_sha}">copy</button></div>
      ${wall}`;
+
+  if (before){
+    requestAnimationFrame(() => {
+      $('#receipt').querySelectorAll('.status[data-to]').forEach(chip => {
+        chip.dataset.s = chip.dataset.to;
+      });
+      $('#receipt').querySelectorAll('.val.arriving').forEach(cell => {
+        cell.classList.remove('arriving');
+      });
+    });
+  }
 
   setResult(receipt);
   $('#ch-input').textContent = short(receipt.input_hash);

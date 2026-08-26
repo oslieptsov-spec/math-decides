@@ -38,7 +38,7 @@ window, and it never will.
 | 0:00 | landing, `incomplete-laws` already run | three panels; one output computed, three withheld |
 | 0:10 | receipt panel, cursor on `defensive_factor` | dashed chip, `no declaration releases it` — the output no law can reach |
 | 0:20 | explanation panel | the model restates the receipt; provenance line names model, build, path |
-| 0:30 | switch preset to `declared-laws`, validate | three outputs compute; `defensive_factor` stays withheld anyway |
+| 0:30 | switch preset to `declared-laws`, validate | **the money shot.** Amber chips travel to green and the values write themselves in; `defensive_factor` does not move. Hold the frame through the transition — roughly half a second — and do not cut on the click |
 | 0:45 | attack console, one button per column | structure, schema, post-validator — three different reasons to say no |
 | 0:55 | free-text field, type an override instruction, send | structural verdict, no prose, `receipt_sha unchanged` |
 | 1:05 | `#rejected` | a real refused answer: repair, then `explanation unavailable — receipt stands` |
