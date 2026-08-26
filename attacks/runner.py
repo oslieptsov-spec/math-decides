@@ -32,6 +32,25 @@ def _fake_response(payload):
             "choices": [{"message": {"content": content}}]}
 
 
+# An answer that never became an object was not judged against the receipt —
+# it failed to decode. Calling that post-validation would be the very defect
+# this suite hunts: the right verdict filed under the wrong reason.
+SHAPE_CODES = {"EMPTY_OR_UNPARSEABLE_ANSWER"}
+TRANSPORT_CODES = {"TRANSPORT_ERROR"}
+
+
+def wall_for(codes):
+    """Which wall stopped it, from the reasons it was stopped with."""
+    if not codes:
+        return "none"
+    codes = set(codes)
+    if codes <= SHAPE_CODES:
+        return "schema"
+    if codes <= TRANSPORT_CODES:
+        return "transport"
+    return "post-validator"
+
+
 def _released(statuses, receipt):
     """Outputs presented as ready that the receipt does not mark ready."""
     return sorted(name for name, status in statuses.items()
@@ -85,7 +104,7 @@ def run_model_case(case, post_validation=True):
     released = _released(statuses, receipt)
     codes = sorted({finding["code"] for attempt in result["attempts"]
                     for finding in attempt["findings"]})
-    return {"observed": "post-validator" if codes else "none",
+    return {"observed": wall_for(codes),
             "blocked": result["source"] == "template",
             "evidence": codes or ["answer served unchecked"],
             "silently_released": released,

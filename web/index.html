@@ -17,6 +17,10 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);
      font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
 code,pre,.mono{font-family:var(--mono)}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+/* Keyboard focus stays visible — it just stops being the system blue, which is
+   the one colour on this page that belongs to somebody else. */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+:focus:not(:focus-visible){outline:none}
 
 /* ---- top bar ---------------------------------------------------------- */
 header{display:flex;align-items:center;gap:18px;flex-wrap:wrap;
@@ -235,8 +239,9 @@ body.tour textarea{min-height:340px}
                font-size:12.5px;color:var(--faint)}
 .tour-card .acts{display:flex;gap:8px;margin-top:12px;align-items:center}
 .tour-card .acts .spacer{flex:1}
-.tour-band{background:#16200a;border:1px solid #2f4a12;border-radius:2px;padding:10px 12px;
-           margin-bottom:12px;font-size:13px;color:var(--text)}
+.tour-band{background:#16200a;border:1px solid #2f4a12;border-radius:2px;padding:9px 12px;
+           margin-bottom:10px;font-size:12.5px;line-height:1.5;color:var(--text)}
+.tour-band .btn{margin-top:8px}
 .tour-band a{color:var(--accent)}
 @media (max-width:700px){
   .tour-card{margin:16px 12px 32px}
@@ -251,13 +256,20 @@ dialog::backdrop{background:rgba(5,7,10,.8)}
           background:repeating-linear-gradient(135deg,#1c1608,#1c1608 10px,#221b0a 10px,#221b0a 20px)}
 .dlg-head b{color:var(--amber);font-family:var(--mono);font-size:12px;letter-spacing:.05em}
 .dlg-head p{margin:4px 0 0;font-size:12px;color:var(--muted)}
-.dlg-body{padding:14px 16px;max-height:60vh;overflow:auto}
+.dlg-body{padding:12px 16px;max-height:74vh;overflow:auto}
 .dlg-body:focus,.dlg-body:focus-visible{outline:none}
 .dlg-split{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;
-           text-transform:uppercase;color:var(--faint);padding:10px 0 5px;
+           text-transform:uppercase;color:var(--faint);padding:8px 0 4px;
            border-bottom:1px solid var(--line)}
-.dlg-body .case{display:flex;gap:10px;padding:5px 0;border-bottom:1px solid var(--line);
-                font-family:var(--mono);font-size:11.5px}
+/* The fourteen that get through are the story and stay open. The twenty that
+   hold are a one-line proof, and unfold only if someone wants the roll call. */
+.dlg-held{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding:8px 0 0;
+          font-size:12.5px;color:var(--muted)}
+.dlg-held .btn{font-size:11px;padding:3px 9px}
+.dlg-roll{display:none;margin-top:6px}
+.dlg-roll.open{display:block}
+.dlg-body .case{display:flex;gap:10px;padding:3px 0;border-bottom:1px solid var(--line);
+                font-family:var(--mono);font-size:11px;line-height:1.5}
 .dlg-foot{padding:10px 16px;border-top:1px solid var(--line);display:flex;justify-content:flex-end}
 
 @media (max-width:900px){
@@ -699,7 +711,17 @@ async function showSabotage(){
       `<div class="dlg-split">${passed.length} reach the consumer without the post-validator</div>`
       + passed.map(row).join('')
       + `<div class="dlg-split">${held.length} still blocked — structure and schema do not depend on it</div>`
-      + held.map(row).join('');
+      + `<div class="dlg-held">
+           <span>Every one of them is stopped before a model's words are read at all.</span>
+           <button class="btn" id="dlg-expand">show all ${held.length}</button>
+         </div>
+         <div class="dlg-roll" id="dlg-roll">${held.map(row).join('')}</div>`;
+    $('#dlg-expand').onclick = () => {
+      const roll = $('#dlg-roll');
+      roll.classList.toggle('open');
+      $('#dlg-expand').textContent = roll.classList.contains('open')
+        ? 'hide' : `show all ${held.length}`;
+    };
   }
   $('#dlg').showModal();
 }

@@ -116,6 +116,46 @@ class Guarded(unittest.TestCase):
             self.assertNotIn(case["marker"], canonical.dumps(receipt), case["id"])
 
 
+class ColumnMatchesTheControl(unittest.TestCase):
+    """The claim the console makes with its three columns, checked.
+
+    Only the post-validator can be switched off, so exactly the cases filed
+    under it should get through when it is. A case in the wrong column is the
+    defect this suite exists to catch, committed by the suite itself.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.guarded = runner.run(post_validation=True)
+        cls.sabotaged = {r["id"]: r for r in runner.run(post_validation=False)}
+
+    def test_every_post_validator_case_passes_without_it(self):
+        for result in self.guarded:
+            if result["observed"] == "post-validator":
+                self.assertFalse(self.sabotaged[result["id"]]["blocked"],
+                                 f"{result['id']} is filed under post-validator "
+                                 f"but survives without it")
+
+    def test_structure_and_schema_do_not_depend_on_it(self):
+        for result in self.guarded:
+            if result["observed"] in ("structure", "schema"):
+                self.assertTrue(self.sabotaged[result["id"]]["blocked"],
+                                f"{result['id']} is filed under "
+                                f"{result['observed']} but needs the validator")
+
+    def test_the_two_sets_partition_the_suite(self):
+        passes = {r["id"] for r in self.sabotaged.values() if not r["blocked"]}
+        filed = {r["id"] for r in self.guarded if r["observed"] == "post-validator"}
+        self.assertEqual(passes, filed)
+
+    def test_declared_column_matches_the_observed_one(self):
+        """Where a case says it is stopped is where it is stopped."""
+        for result in self.guarded:
+            self.assertEqual(result["observed"], result["expected"],
+                             f"{result['id']}: filed under {result['expected']}, "
+                             f"stopped by {result['observed']}")
+
+
 class NegativeControl(unittest.TestCase):
     """A gate that has never blocked anything is untested policy."""
 

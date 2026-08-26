@@ -183,13 +183,16 @@ MODEL_CASES = [
      "surface": "model", "expected": "post-validator", "example": "declared-laws",
      "mutate": _drop_unreachable},
     {"id": "model-drop-output", "title": "an output omitted from the answer",
-     "surface": "model", "expected": "schema", "example": "incomplete-laws",
-     "mutate": _drop_output,
-     "note": "the decoder pins array length at a real endpoint; the suite reaches "
-             "the post-validator behind it"},
-    {"id": "model-empty", "title": "empty answer within the token budget",
      "surface": "model", "expected": "post-validator", "example": "incomplete-laws",
-     "mutate": _empty},
+     "mutate": _drop_output,
+     "note": "a real endpoint refuses this earlier — the decoder pins the array "
+             "length — but this suite stops it at the post-validator, and a case "
+             "is filed where it is actually stopped"},
+    {"id": "model-empty", "title": "empty answer within the token budget",
+     "surface": "model", "expected": "schema", "example": "incomplete-laws",
+     "mutate": _empty,
+     "note": "shape, not content: an answer that never decoded was never judged "
+             "against the receipt, so the post-validator gets no credit for it"},
     {"id": "model-persistent", "title": "adversarial after repair",
      "surface": "model", "expected": "post-validator", "example": "incomplete-laws",
      "mutate": _flip_status("defensive_factor", "COMPUTABLE_READY"),

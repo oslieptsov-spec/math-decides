@@ -61,9 +61,10 @@ Three places, and the difference matters more than the total.
 | 29 | a way out offered for a lawless output | model | post-validator | `UNLOCK_FOR_LAWLESS_OUTPUT`, `UNLOCK_NOT_IN_RECEIPT` |
 | 30 | unlock law that the receipt never named | model | post-validator | `UNLOCK_LAWS_INVENTED` |
 | 31 | unreachable list quietly emptied | model | post-validator | `UNREACHABLE_MISMATCH` |
-| 32 | an output omitted from the answer | model | post-validator (expected schema) | `OUTPUT_OMITTED` |
-| | *the decoder pins array length at a real endpoint; the suite reaches the post-validator behind it* | | | |
-| 33 | empty answer within the token budget | model | post-validator | `EMPTY_OR_UNPARSEABLE_ANSWER` |
+| 32 | an output omitted from the answer | model | post-validator | `OUTPUT_OMITTED` |
+| | *a real endpoint refuses this earlier — the decoder pins the array length — but this suite stops it at the post-validator, and a case is filed where it is actually stopped* | | | |
+| 33 | empty answer within the token budget | model | schema | `EMPTY_OR_UNPARSEABLE_ANSWER` |
+| | *shape, not content: an answer that never decoded was never judged against the receipt, so the post-validator gets no credit for it* | | | |
 | 34 | **adversarial after repair** | model | **post-validator** | `STATUS_MISMATCH` |
 | | *without the post-validator this one reaches the consumer with a withheld output marked ready* | | | |
 | | *the repair attempt came back adversarial too; the deterministic renderer answers* | | | |
