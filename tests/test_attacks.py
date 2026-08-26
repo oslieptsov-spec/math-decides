@@ -57,11 +57,15 @@ class PublishedNumbers(unittest.TestCase):
         for path in targets:
             if not path.exists():
                 continue
-            text = path.read_text(encoding="utf-8")
-            for numerator, denominator in re.findall(r"(\d+)\s*(?:of|/)\s*(\d+)", text):
-                if 20 <= int(denominator) <= 99:
-                    self.assertEqual(int(denominator), total,
-                                     f"{path.name}: {numerator}/{denominator} is stale")
+            for line in path.read_text(encoding="utf-8").splitlines():
+                # Only ratios that are about the suite. A document may quote an
+                # acceptance rate or a page count without answering to this.
+                if not re.search(r"attack|case|blocked|silently", line, re.I):
+                    continue
+                for numerator, denominator in re.findall(r"(\d+)\s*(?:of|/)\s*(\d+)", line):
+                    if 20 <= int(denominator) <= 99:
+                        self.assertEqual(int(denominator), total,
+                                         f"{path.name}: {numerator}/{denominator} is stale")
 
     def test_the_page_never_states_a_law_count_in_copy(self):
         """Counts in prose render from the domain, not from a keystroke.
