@@ -121,6 +121,13 @@ untrusted text never reaches it at all, the prompt-injection classes are closed
 upstream. What remains for this contract is the model's own drift, which is the
 failure a language model actually produces.
 
+**A note on the prompt.** The instruction that forbids status codes in prose
+must not print them. It once did — three codes given as examples of what to
+paraphrase — and the repair note echoed whichever one had slipped, so a refusal
+re-primed the failure it reported. Both attempts came back with a code in prose
+and the demo fell to its template on the happy path. Neither the prompt nor a
+repair note names a status code now, and a test asserts it.
+
 **On refusal:** one repair attempt with the findings, then the deterministic
 renderer answers and says so. `render.render()` satisfies the same validator it
 backs up — a test asserts it.
@@ -190,7 +197,9 @@ costs a phrasing; the alternative costs the guarantee.
 
 Every answer records what produced it: `model`, `build`, `temperature`, `path`
 (`api-catalog`, `nim`, or `canned`), the response id, and whether reasoning was
-returned. The explanation is **bound** to a receipt digest and is not
+returned. The hosted catalog returns no build identifier, so the page shows
+`n/a (api-catalog)` rather than "not supplied" — the absence belongs to the
+path, and a self-hosted NIM fills it in. The explanation is **bound** to a receipt digest and is not
 reproducible from it — a language model is not a deterministic function, and the
 page says so in its footer.
 

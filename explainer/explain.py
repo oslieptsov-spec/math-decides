@@ -31,8 +31,19 @@ REPAIR_HINTS = {
 }
 
 
+def _detail(finding):
+    """Findings quote what was wrong — except the token that must not be echoed.
+
+    Naming a forbidden literal back to the model is how it ends up in the next
+    answer: the repair note was re-priming the very failure it reported.
+    """
+    if finding["code"] != "STATUS_LITERAL_IN_PROSE":
+        return finding["detail"]
+    return "a raw status code appears in a prose field; paraphrase it instead"
+
+
 def repair_prompt(findings):
-    lines = "\n".join(f"- {f['code']}: {f['detail']}" for f in findings)
+    lines = "\n".join(f"- {f['code']}: {_detail(f)}" for f in findings)
     hints = sorted({REPAIR_HINTS[f["code"]] for f in findings
                     if f["code"] in REPAIR_HINTS})
     guidance = ("\n" + "\n".join(hints)) if hints else ""

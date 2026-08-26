@@ -34,8 +34,14 @@ def render(receipt, note="explanation unavailable — receipt stands"):
         "unlock": [{"output": name, "declare": list(laws)}
                    for name, laws in sorted(receipt["unlock"].items())],
         "unreachable": list(receipt["unreachable_by_declaration"]),
+        # Not "which law would you declare" — the receipt says none will do.
+        # The honest question is whether such a relation can be defined at all,
+        # which is a change to the catalogue and not to this request. The suite
+        # refuses a model that offers a way out for a lawless output; the
+        # fallback must not do what a model is refused for.
         "next_questions": [
-            f"Which closing relation would you declare for {name}?"
+            f"Can a closing relation for {name} be defined at all, "
+            f"or should it be dropped from the scope of this request?"
             for name in receipt["unreachable_by_declaration"]
         ] or ["Which of the undeclared laws can you supply?"],
         "_note": note,

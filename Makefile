@@ -33,3 +33,6 @@ ui:
 
 record:
 	python3 tools/record.py
+
+sync:
+	python3 tools/sync_readme.py

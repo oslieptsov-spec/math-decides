@@ -78,6 +78,24 @@ class Numbers(unittest.TestCase):
         self.assertEqual(numbers.significant_digits("250"), 3)
 
 
+class TemplateIsHeldToTheSameRule(unittest.TestCase):
+    """The fallback must not do what a model is refused for."""
+
+    def test_it_offers_no_way_out_for_a_lawless_output(self):
+        receipt = engine.evaluate(examples.load("incomplete-laws"))
+        answer = render.render(receipt)
+        for name in receipt["unreachable_by_declaration"]:
+            for question in answer["next_questions"]:
+                if name in question:
+                    self.assertNotIn("would you declare", question)
+                    self.assertIn("at all", question)
+
+    def test_it_still_passes_its_own_validator(self):
+        for preset in examples.EXAMPLES:
+            receipt = engine.evaluate(examples.load(preset))
+            self.assertEqual(validate.validate(render.render(receipt), receipt), [])
+
+
 class Validation(unittest.TestCase):
     def setUp(self):
         self.receipt = receipt()
@@ -270,6 +288,33 @@ class RequestShape(unittest.TestCase):
 
     def test_temperature_is_zero(self):
         self.assertEqual(client.build_body(self.config, [], {})["temperature"], 0.0)
+
+    def test_the_prompt_never_prints_a_status_code(self):
+        """Naming the forbidden token is how it reaches the next answer.
+
+        The instruction that banned status codes in prose printed all three of
+        them as examples, and the repair note echoed whichever one had slipped.
+        Both attempts on a preset came back with a code in prose and the demo
+        fell to its template on the happy path.
+        """
+        from gate import domain
+        for status in domain.STATUSES:
+            self.assertNotIn(status, schema.SYSTEM_PROMPT, status)
+
+    def test_a_repair_note_does_not_echo_the_token(self):
+        from explainer import explain as orchestration
+        note = orchestration.repair_prompt(
+            [{"code": "STATUS_LITERAL_IN_PROSE",
+              "detail": "COMPUTABLE_READY in 'everything is COMPUTABLE_READY'"}])
+        self.assertNotIn("COMPUTABLE_READY", note)
+
+    def test_plain_english_about_a_withheld_output_is_fine(self):
+        """The ban is on the enum token, never on the English word."""
+        receipt = engine.evaluate(examples.load("incomplete-laws"))
+        answer = render.render(receipt)
+        answer["summary"] = ("One output was computed; the other three are "
+                             "withheld, and one of them permanently.")
+        self.assertEqual(validate.validate(answer, receipt), [])
 
     def test_the_key_never_appears_in_a_redacted_config(self):
         self.assertNotIn("nvapi-", json.dumps(self.config.redacted()))

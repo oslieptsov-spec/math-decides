@@ -2,27 +2,27 @@
  "declared-laws": {
   "receipt_sha": "19926a969678466e90114329f0b40ce9f5cada832df10cc23060db55375ea789",
   "explanation": {
-   "summary": "The engine computed three outputs: fill_price with a value of 102.57 price, liquidation_risk with a value of 0.44 probability, and slippage_bps with a value of 6.60 bps. The output defensive_factor remains withheld because no closing relation exists.",
+   "summary": "The engine computed three outputs: fill_price with a value of 102.567602167 price, liquidation_risk with a value of 0.441165760577 probability, and slippage_bps with a value of 6.59533333334 bps. The output defensive_factor remains withheld because no closing relation can be established.",
    "outputs": [
-    {
-     "name": "defensive_factor",
-     "status": "WITHHELD_NO_DECLARED_LAW",
-     "restated_reason": "The output cannot be computed because there is no declared law that provides a closing relation for it, and declaring additional laws will not change this status."
-    },
     {
      "name": "fill_price",
      "status": "COMPUTABLE_READY",
-     "restated_reason": "All required laws are declared, so the dependency is closed and the output is ready for use."
+     "restated_reason": "All required laws have been declared, so the dependency closes and the output can be computed and released."
     },
     {
      "name": "liquidation_risk",
      "status": "COMPUTABLE_READY",
-     "restated_reason": "All required laws are declared, so the dependency is closed and the output is ready for use."
+     "restated_reason": "All required laws have been declared, so the dependency closes and the output can be computed and released."
     },
     {
      "name": "slippage_bps",
      "status": "COMPUTABLE_READY",
-     "restated_reason": "All required laws are declared, so the dependency is closed and the output is ready for use."
+     "restated_reason": "All required laws have been declared, so the dependency closes and the output can be computed and released."
+    },
+    {
+     "name": "defensive_factor",
+     "status": "WITHHELD_NO_DECLARED_LAW",
+     "restated_reason": "No closing relation exists for this output; declaring further laws will not change its status."
     }
    ],
    "unlock": [],
@@ -30,8 +30,9 @@
     "defensive_factor"
    ],
    "next_questions": [
-    "Can you define a closing relation for defensive_factor?",
-    "Should defensive_factor be removed from the scope of this computation?"
+    "Should the system attempt to define a closing relation for defensive_factor, or should it remain excluded from the scope?",
+    "Are there any additional laws that could be declared to enable computation of defensive_factor?",
+    "Is it acceptable to keep defensive_factor withheld indefinitely given that no relation can close it?"
    ]
   },
   "source": "model",
@@ -52,16 +53,16 @@
    },
    "returned": {
     "model": "nvidia/nemotron-3-nano-30b-a3b",
-    "response_id": "chatcmpl-86ccff96-2977-45c5-81c2-1bbdce1768e7",
+    "response_id": "chatcmpl-bf87041f-8e6c-40c4-a347-f5b4ef162845",
     "system_fingerprint": null,
     "usage": {
-     "prompt_tokens": 963,
-     "completion_tokens": 364,
-     "total_tokens": 1327
+     "prompt_tokens": 940,
+     "completion_tokens": 419,
+     "total_tokens": 1359
     },
     "reasoning_returned": false
    },
-   "generated_at": "2026-08-26T15:02:09+00:00",
+   "generated_at": "2026-08-26T15:45:50+00:00",
    "reproducible": false,
    "note": "the endpoint supplies no build identifier; a provider-side model update is visible in behaviour, not in a version"
   }
@@ -69,27 +70,27 @@
  "incomplete-laws": {
   "receipt_sha": "89660faf9eb45a6db0e5b40dd9c8d73239964a4a78c44172dffbfa0ab508bb64",
   "explanation": {
-   "summary": "The system computed one output, slippage_bps, with a value of 6.59533333334 bps. All other outputs are withheld: fill_price is withheld because a missing law remains undeclared, and liquidation_risk is withheld because missing laws remain undeclared. The single thing standing between the caller and the rest is the set of undeclared laws that must be provided before those outputs can be released.",
+   "summary": "The system computed one output, slippage_bps, and released it with a value of 6.59533333334 bps. All other outputs remain withheld: defensive_factor is withheld because no closing relation exists, fill_price is withheld due to missing gap_size, and liquidation_risk is withheld due to missing gap_size, panic_multiplier, and liquidation_threshold.",
    "outputs": [
     {
      "name": "defensive_factor",
      "status": "WITHHELD_NO_DECLARED_LAW",
-     "restated_reason": "The output cannot be computed because no closing relation exists for it; declaring further laws will not change this status, so it remains permanently withheld until a relation is defined or the output is removed from scope."
+     "restated_reason": "No closing relation exists for this output; declaring further laws will not change the status."
     },
     {
      "name": "fill_price",
      "status": "WITHHELD_MISSING_DECLARED_LAW",
-     "restated_reason": "The output cannot be computed because the required law gap_size has not been declared; it will become computable only when that law is declared."
+     "restated_reason": "One or more required laws were not declared."
     },
     {
      "name": "liquidation_risk",
      "status": "WITHHELD_MISSING_DECLARED_LAW",
-     "restated_reason": "The output cannot be computed because the required laws gap_size, panic_multiplier, and liquidation_threshold have not been declared; it will become computable only when all three are declared."
+     "restated_reason": "One or more required laws were not declared."
     },
     {
      "name": "slippage_bps",
      "status": "COMPUTABLE_READY",
-     "restated_reason": "The output has all its required laws declared and its dependency is closed, so it is ready for use."
+     "restated_reason": "Every required law is declared; the dependency closes."
     }
    ],
    "unlock": [
@@ -112,9 +113,9 @@
     "defensive_factor"
    ],
    "next_questions": [
-    "Which of the undeclared laws should be defined to unlock fill_price and liquidation_risk?",
-    "Can a closing relation be defined for defensive_factor, or should it be excluded from the scope?",
-    "Are there any constraints on defining the required laws that would affect other parts of the system?"
+    "Should gap_size be declared to unlock fill_price?",
+    "Should gap_size, panic_multiplier, and liquidation_threshold be declared to unlock liquidation_risk?",
+    "Is it possible to define a closing relation for defensive_factor, or should it remain outside the scope?"
    ]
   },
   "source": "model",
@@ -135,31 +136,31 @@
    },
    "returned": {
     "model": "nvidia/nemotron-3-nano-30b-a3b",
-    "response_id": "chatcmpl-a5f378ec-dcb4-4a2a-8525-4c48bebdcbfa",
+    "response_id": "chatcmpl-811bc34a-164b-469a-a505-cb4f62317d5c",
     "system_fingerprint": null,
     "usage": {
-     "prompt_tokens": 1001,
-     "completion_tokens": 544,
-     "total_tokens": 1545
+     "prompt_tokens": 978,
+     "completion_tokens": 445,
+     "total_tokens": 1423
     },
     "reasoning_returned": false
    },
-   "generated_at": "2026-08-26T15:02:15+00:00",
+   "generated_at": "2026-08-26T15:45:55+00:00",
    "reproducible": false,
    "note": "the endpoint supplies no build identifier; a provider-side model update is visible in behaviour, not in a version"
   }
  },
  "_rejected_example": {
-  "example": "declared-laws",
-  "receipt_sha": "19926a969678466e90114329f0b40ce9f5cada832df10cc23060db55375ea789",
+  "example": "incomplete-laws",
+  "receipt_sha": "89660faf9eb45a6db0e5b40dd9c8d73239964a4a78c44172dffbfa0ab508bb64",
   "source": "template",
   "attempts": [
    {
     "attempt": 1,
     "findings": [
      {
-      "code": "REASON_MISATTRIBUTED",
-      "detail": "defensive_factor: receipt gives ['WITHHELD_NO_DECLARED_LAW'], prose argues ['WITHHELD_MISSING_DECLARED_LAW'] in ' declaring additional laws will not change this status, and no missing'"
+      "code": "STATUS_LITERAL_IN_PROSE",
+      "detail": "COMPUTABLE_READY in 'The system computed one output, slippage_bps, with a value o'"
      }
     ]
    },
@@ -167,14 +168,14 @@
     "attempt": 2,
     "findings": [
      {
-      "code": "REASON_MISATTRIBUTED",
-      "detail": "defensive_factor: receipt gives ['WITHHELD_NO_DECLARED_LAW'], prose argues ['WITHHELD_MISSING_DECLARED_LAW'] in ' declaring further laws will not change this status, and no missing la'"
+      "code": "STATUS_LITERAL_IN_PROSE",
+      "detail": "COMPUTABLE_READY in 'The system computed one output, slippage_bps, with a value o'"
      }
     ]
    }
   ],
   "explanation": {
-   "summary": "3 of 4 outputs computed; 1 withheld.",
+   "summary": "1 of 4 outputs computed; 3 withheld.",
    "outputs": [
     {
      "name": "defensive_factor",
@@ -183,13 +184,13 @@
     },
     {
      "name": "fill_price",
-     "status": "COMPUTABLE_READY",
-     "restated_reason": "every required law is declared, so this one computes"
+     "status": "WITHHELD_MISSING_DECLARED_LAW",
+     "restated_reason": "declare gap_size and this one computes"
     },
     {
      "name": "liquidation_risk",
-     "status": "COMPUTABLE_READY",
-     "restated_reason": "every required law is declared, so this one computes"
+     "status": "WITHHELD_MISSING_DECLARED_LAW",
+     "restated_reason": "declare gap_size, panic_multiplier, liquidation_threshold and this one computes"
     },
     {
      "name": "slippage_bps",
@@ -197,12 +198,27 @@
      "restated_reason": "every required law is declared, so this one computes"
     }
    ],
-   "unlock": [],
+   "unlock": [
+    {
+     "output": "fill_price",
+     "declare": [
+      "gap_size"
+     ]
+    },
+    {
+     "output": "liquidation_risk",
+     "declare": [
+      "gap_size",
+      "panic_multiplier",
+      "liquidation_threshold"
+     ]
+    }
+   ],
    "unreachable": [
     "defensive_factor"
    ],
    "next_questions": [
-    "Which closing relation would you declare for defensive_factor?"
+    "Can a closing relation for defensive_factor be defined at all, or should it be dropped from the scope of this request?"
    ],
    "_note": "explanation unavailable \u2014 receipt stands"
   },
@@ -217,16 +233,16 @@
    },
    "returned": {
     "model": "nvidia/nemotron-3-nano-30b-a3b",
-    "response_id": "chatcmpl-0fe7267d-9167-4ab4-a598-131c774b55ff",
+    "response_id": "chatcmpl-af0360df-633d-41d0-aca8-cefcce64094e",
     "system_fingerprint": null,
     "usage": {
-     "prompt_tokens": 1516,
-     "completion_tokens": 400,
-     "total_tokens": 1916
+     "prompt_tokens": 1532,
+     "completion_tokens": 480,
+     "total_tokens": 2012
     },
     "reasoning_returned": false
    },
-   "generated_at": "2026-08-26T15:02:05+00:00",
+   "generated_at": "2026-08-26T15:46:05+00:00",
    "reproducible": false,
    "note": "the endpoint supplies no build identifier; a provider-side model update is visible in behaviour, not in a version"
   }

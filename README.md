@@ -154,9 +154,15 @@ tested". They are kept apart here.
 ## Acceptance rate
 
 Measured on `nvidia/nemotron-3-nano-30b-a3b` through the API catalog, ten runs
-per example: **13 of 20 answers accepted on the first attempt, 15 of 20 answered
-by the model** after at most one repair. The rest fell back to the deterministic
-renderer. `tools/calibrate.py` reports it.
+per example: **20 of 20 answers accepted on the first attempt.**
+`tools/calibrate.py` reports it.
+
+That figure was 13 of 20 until the prompt stopped printing the status codes it
+forbids. Naming a forbidden literal to a model is how it reaches the next
+answer, and the repair note was echoing whichever one had slipped — a refusal
+re-priming the failure it reported. Rejections still happen; the recorded
+example the demo replays is a real one, and the fallback path is exercised,
+not decorative.
 
 This number calibrates *a model on a serving stack*. It is **not** a ranking
 statistic and must not be read as one — a different model on a different decoder
@@ -203,7 +209,7 @@ in a version — which is exactly what the acceptance rate above is for.
 ## Reproducing everything
 
 ```bash
-make test         # 154 tests, offline, no key required
+make test         # 159 tests, offline, no key required
 make attacks      # the suite
 make sabotage     # the negative control
 make results      # regenerate attacks/RESULTS.md
