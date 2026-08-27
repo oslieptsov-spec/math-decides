@@ -10,6 +10,10 @@ what it cannot, and seals the result with a hash **before any model runs**. The
 model receives that receipt and may restate it in English. It cannot change a
 status, invent a number, or hand back anything the gate did not say.
 
+**Try it live:** <https://math-decides-237389287639.us-central1.run.app> — a
+seven-step walkthrough, no key and no account. The gate is live there; the
+model's prose is recorded and the page says so.
+
 [![the contrast](docs/img/contrast.png)](docs/img/contrast.png)
 
 ---
