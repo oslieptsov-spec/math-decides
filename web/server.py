@@ -24,6 +24,7 @@ import json
 import signal
 import os
 import socket
+import subprocess
 import threading
 import time
 from collections import defaultdict, deque
@@ -131,6 +132,23 @@ def _canned():
     return {}
 
 
+def hardware():
+    """The accelerator this instance is serving from, if there is one.
+
+    Reported only when a GPU is actually present: a page that names an H100 it
+    is not running on would be the same kind of claim this project refuses
+    everywhere else.
+    """
+    try:
+        out = subprocess.run(["nvidia-smi", "--query-gpu=name",
+                              "--format=csv,noheader"],
+                             capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    name = (out.stdout or "").strip().splitlines()
+    return name[0].strip() if out.returncode == 0 and name else None
+
+
 def mode():
     """Which path is answering. Shown on the page at all times."""
     config = client.Config()
@@ -143,7 +161,7 @@ def api_state():
     config = client.Config()
     state = _load_counter()
     state["resets"] = len(state.get("resets", []))
-    return dict(state, mode=mode(), model=config.model,
+    return dict(state, mode=mode(), model=config.model, hardware=hardware(),
                 path=config.path, examples=sorted(examples.EXAMPLES))
 
 
