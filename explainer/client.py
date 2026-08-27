@@ -49,11 +49,17 @@ class Config:
         self.timeout = timeout
         self.path = path or ("nim" if "integrate.api.nvidia.com" not in self.base_url
                              else "api-catalog")
+        # Where the NIM runs is not discoverable from its API: a self-hosted
+        # endpoint on a rented H100 and one on GKE answer identically. So it is
+        # declared by whoever started the process and labelled as declared, not
+        # reported as if it had been measured.
+        self.deployment = os.environ.get("NIM_DEPLOYMENT")
 
     def redacted(self):
         return {"model": self.model, "base_url": self.base_url, "path": self.path,
                 "temperature": self.temperature, "max_tokens": self.max_tokens,
-                "key_present": bool(self.api_key)}
+                "key_present": bool(self.api_key),
+                "deployment_declared": self.deployment}
 
 
 THINKING_OFF = "detailed thinking off"

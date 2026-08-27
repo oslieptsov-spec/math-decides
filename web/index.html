@@ -701,7 +701,14 @@ function renderExplanation(result){
   // returns a build identifier. Naming the path is the honest form of the gap.
   $('#pv-build').textContent = returned.build || returned.system_fingerprint
                                || `n/a (${path})`;
-  $('#pv-path').textContent = path;
+  // The deployment label is declared by whoever started the process — a NIM's
+  // API cannot say which cluster it runs in — so it is shown as its own token
+  // and says so on hover, rather than being blended into the measured path.
+  const where = requested.deployment_declared;
+  $('#pv-path').textContent = where ? `${path} · ${where}` : path;
+  $('#pv-path').title = where
+    ? `path ${path} is measured from the endpoint; "${where}" is declared by the operator, not detected`
+    : 'measured from the endpoint that answered';
   $('#pv-source').textContent = result.source;
   $('#pv-structure').textContent = returned.structured_output || '—';
   $('#pv-temp').textContent = requested.temperature ?? '—';

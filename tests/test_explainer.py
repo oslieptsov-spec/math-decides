@@ -341,6 +341,17 @@ class RequestShape(unittest.TestCase):
                          "json_schema")
         client._SCHEMA_MODE_CACHE.clear()
 
+    def test_where_it_runs_is_declared_and_labelled_as_declared(self):
+        """A NIM's API cannot say which cluster it is in, so the label says who said so."""
+        import os
+        os.environ["NIM_DEPLOYMENT"] = "GKE Autopilot"
+        try:
+            self.assertEqual(client.Config().redacted()["deployment_declared"],
+                             "GKE Autopilot")
+        finally:
+            del os.environ["NIM_DEPLOYMENT"]
+        self.assertIsNone(client.Config().redacted()["deployment_declared"])
+
     def test_reasoning_is_also_switched_off_in_the_prompt(self):
         """The kwarg is ignored by the family that needs the directive."""
         body = client.build_body(

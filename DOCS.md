@@ -210,25 +210,50 @@ costs a phrasing; the alternative costs the guarantee.
 
 ## 7. Provenance
 
-Every answer records what produced it: `model`, `build`, `temperature`, `path`
-(`api-catalog`, `nim`, or `canned`), the response id, and whether reasoning was
-returned. The page shows `n/a (<path>)` rather than "not supplied", because the
-absence belongs to the path. It was assumed a self-hosted NIM would fill it in;
-[docs/readback.md](docs/readback.md) records that it does not — `system_fingerprint` came
-back null there too, so no build identifier is available on either path. The explanation is **bound** to a receipt digest and is not
-reproducible from it — a language model is not a deterministic function, and the
-page says so in its footer.
+Every answer records what produced it: `model`, `build`, `temperature`, `path`,
+`structure`, the response id, and whether reasoning was returned. The
+explanation is **bound** to a receipt digest and is not reproducible from it —
+a language model is not a deterministic function, and the page says so in its
+footer.
 
-The endpoint supplies no build identifier. A provider-side model update is
-therefore visible in behaviour rather than in a version, which is what the
-acceptance rate is for: `tools/calibrate.py` measures how often a first answer
-survives post-validation, and a drop in that rate is the instrument that would
-notice. It calibrates *a model on a serving stack* and is not a ranking
-statistic.
+**Build.** Neither path returns `system_fingerprint`, and it was first assumed
+that no build identifier existed anywhere. A self-hosted NIM does publish one —
+on `/v1/version`, not in the OpenAI-shaped response — so provenance reads
+`nim 1.8.4 (api 3.1.0)` there and `n/a (api-catalog)` on the hosted path, where
+no such route exists. The note under it is derived from what was obtained, not
+written once and left to be wrong on the path that contradicts it.
 
-Reasoning is switched off (`chat_template_kwargs: {"thinking": false}`). A
-reasoning trace is prose no schema covers, and prose the validator does not see
-must not be shown; switching it off removes the channel rather than policing it.
+Where no build is available, a provider-side model update is visible in
+behaviour rather than in a version, which is what the acceptance rate is for:
+`tools/calibrate.py` measures how often a first answer survives
+post-validation, and a drop in that rate is the instrument that would notice.
+It calibrates *a model on a serving stack* and is not a ranking statistic.
+
+**Structure.** `structure` names which rung of the decoder ladder the request
+actually got: `json_schema`, `nvext`, or `json_object`. A stack that refuses
+the OpenAI-standard schema may still accept the identical schema through the
+NIM extension, and the difference between that and bare `json_object` is not
+cosmetic — see [docs/readback.md](docs/readback.md) for the run where the
+weakest rung produced nine hundred tokens of whitespace. The field exists
+because "structure imposed by the decoder" is a claim that has to be true of
+the run it describes.
+
+**Deployment.** `path` is measured — it follows from the endpoint that
+answered. Where the process runs is not: a self-hosted NIM on a rented H100 and
+one on GKE answer identically, and nothing in the API distinguishes them. So
+`NIM_DEPLOYMENT` is declared by whoever starts the process, rendered as its own
+token after the measured path, and says on hover that it is declared rather
+than detected. A label that looked measured would be the one dishonest thing on
+the page.
+
+**Reasoning** is switched off through both switches that exist:
+`chat_template_kwargs: {"thinking": false}`, which the templates that know it
+read, and the line `detailed thinking off` opening the system message, which is
+how the llama-nemotron family takes it. A reasoning trace is prose no schema
+covers, and prose the validator does not see must not be shown; switching it
+off removes the channel rather than policing it. Set only one way, a model in
+that family spent its entire token budget reasoning and returned an answer of
+zero characters — a switch that was set and not read.
 
 ## 8. The attack suite
 

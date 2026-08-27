@@ -234,7 +234,21 @@ NVIDIA_BASE_URL=http://<your-nim>:8000/v1 make ui
 
 ### Running on GKE
 
-[`deploy/nim-l4.yaml`](deploy/nim-l4.yaml) is one pod, one L4, on Autopilot:
+Deployed following the **NVIDIA NIM on GKE** learning path.
+[`deploy/nim-l4.yaml`](deploy/nim-l4.yaml) is what actually ran:
+
+| | |
+|---|---|
+| cluster | GKE Autopilot, `us-central1-b`, node auto-provisioned |
+| node | `g2-standard-8`, one `nvidia-l4` (23.7 GB, compute capability 8.9) |
+| image | `nvcr.io/nim/nvidia/llama-3.1-nemotron-nano-8b-v1:1.8.4` |
+| profile | vLLM bf16, tensor parallelism 1, pinned by digest `4f904d57…` |
+| structure | schema through `nvext.guided_json` — `json_schema` is refused by this build |
+| measured | 14.5 tok/s short, 4.9 tok/s schema-guided; **0 of 8** answers accepted |
+
+[![the pod on GKE](docs/img/gke-pods.png)](docs/img/gke-pods.png)
+
+
 
 ```bash
 kubectl create secret docker-registry ngc-secret --docker-server=nvcr.io \
@@ -253,8 +267,13 @@ two model answers rejected against the receipt, and the deterministic renderer
 answering in their place. The receipt digest is the same one the gate sealed
 before the model was called.
 
-It ran: one pod, one L4, `nim 1.8.4` answering on `/v1/version`, the whole
-path from receipt to post-validated answer. Seven things had to be fixed first
+The provenance line reads `path nim · GKE Autopilot · L4`. Only the first
+token is measured — it comes from the endpoint that answered. The rest is
+declared by whoever started the process and says so on hover, because a NIM's
+API cannot report which cluster it runs in and a label that looks measured
+would be the one dishonest thing on the page.
+
+Seven things had to be fixed first
 and each is a comment in the manifest — global GPU quota, the Accelerator
 compute class, a cache volume, group ownership, the `Recreate` strategy, a
 pinned model profile, and a memory limit that was charging the engine for the
@@ -290,7 +309,7 @@ the default was chosen now return 410 Gone
 ## Reproducing everything
 
 ```bash
-make test         # 173 tests, offline, no key required
+make test         # 174 tests, offline, no key required
 make attacks      # the suite
 make sabotage     # the negative control
 make results      # regenerate attacks/RESULTS.md
