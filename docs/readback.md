@@ -123,3 +123,100 @@ the first one does not have. It caught it on the first answer, every time, and
 the fallback never had to run. A check tuned to a particular model would have
 let this through.
 
+
+---
+
+## Second stack: GKE Autopilot, one L4
+
+The H100 above was rented by the hour from a GPU host. This run is the same
+repository on Google Cloud — GKE Autopilot in `us-central1`, one `nvidia-l4`
+provisioned by the Accelerator compute class onto a `g2-standard-8` node — and
+it is a different measurement in every respect that matters, because a 24 GB
+card does not hold the model the 80 GB card held.
+
+    image    nvcr.io/nim/nvidia/llama-3.1-nemotron-nano-8b-v1:1.8.4
+    build    nim 1.8.4 (api 3.1.0)
+    engine   vLLM 0.6.3, profile pinned, bf16, tensor parallelism 1
+    card     NVIDIA L4, 23.7 GB, compute capability 8.9
+
+### What the card costs in throughput
+
+    60 tokens, no decoder constraint      14.5 tok/s
+    200 tokens, no decoder constraint      2.8 tok/s
+    400 tokens, schema-guided              4.9 tok/s
+
+An explanation costs forty to eighty seconds here against five on the H100.
+That is the price of the card, and it is worth stating plainly rather than
+reporting only the rate that flatters.
+
+### Three things that had to be met before the path ran at all
+
+**The strict schema is refused at the door.** This build answers
+`response_format: json_schema` with *"Input should be 'text' or 'json_object'"*.
+It accepts the identical schema through its own extension,
+`nvext: {guided_json: …}`, so the guarantee is available — under a different
+name, at a different address.
+
+**Bare `json_object` is not a substitute.** Asked for it, the model returned
+**900 tokens and one character of answer**: the JSON grammar permits unlimited
+whitespace and a small model took the permission. The same request under
+`nvext` returned the object in 403 tokens. A schema check is a certificate,
+and this is what a vacuous certificate looks like from the inside — formally
+satisfied, entirely empty.
+
+**Reasoning was switched off through a switch this family does not read.**
+`chat_template_kwargs: {thinking: false}` is the Nemotron-3 convention; the
+llama-nemotron models take `detailed thinking off` as the opening line of the
+system message. Set one way only, the model spent its entire budget reasoning
+and returned zero characters — 97 seconds, capped. With both set: 24 seconds,
+complete answer.
+
+### Acceptance: 0 of 8
+
+Four runs per example, same prompt, same receipts, same post-validator:
+
+    incomplete-laws     0/4 accepted, 0/4 answered by the model
+      UNLOCK_NOT_IN_RECEIPT                  8
+      UNLOCK_FOR_LAWLESS_OUTPUT              8
+      NUMBER_NOT_IN_RECEIPT                  8
+      RELEASE_SUGGESTED_FOR_LAWLESS_OUTPUT   8
+
+    declared-laws       0/4 accepted, 0/4 answered by the model
+      UNREACHABLE_MISMATCH                   8
+      NUMBER_NOT_IN_RECEIPT                  8
+      RELEASE_SUGGESTED_FOR_LAWLESS_OUTPUT   8
+
+Every attempt, first and repair alike, was refused. On this stack the reader
+never sees the model's prose; the deterministic renderer answers, and the page
+says so.
+
+The failure is the same one on both examples: the model offers to release
+`defensive_factor`. No declaration releases it — there is no closing relation
+to declare — and the model proposes one anyway, in every answer it produced.
+That is not a formatting slip. It is the model volunteering to open the one
+door the gate exists to keep shut.
+
+### Why 0 of 8 is the most useful number in this file
+
+The same repository, the same prompt, the same receipts:
+
+| stack | model | accepted first try |
+|-------|-------|--------------------|
+| API catalog | `nemotron-3-nano-30b-a3b` | 20/20 |
+| H100, self-hosted NIM | `nemotron-nano-9b-v2` | 0/20, repaired 20/20 |
+| GKE Autopilot, one L4 | `llama-3.1-nemotron-nano-8b-v1` | 0/8, never repaired |
+
+Three models, three acceptance rates, from perfect to nil. **In none of the
+three did a wrong statement reach the reader.** The rate says how often the
+prose survives; the receipt does not depend on it at any of the three.
+
+This is the claim the repository is built to support, and it took a weak model
+on a small card to make it visible. A demo that only ever ran the 30B model
+would have shown a system that works. This one shows a system that holds when
+the model does not — which is the only condition under which the boundary was
+ever worth building.
+
+It also disqualifies this model as a narrator, and the repository says so
+rather than tuning the prompt until the number improves. Tuning the check to
+the model would defeat its purpose; tuning the prompt to a model that offers
+to unlock a lawless output would be treating advice as a control.

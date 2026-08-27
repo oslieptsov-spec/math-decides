@@ -177,6 +177,24 @@ re-priming the failure it reported. Rejections still happen; the recorded
 example the demo replays is a real one, and the fallback path is exercised,
 not decorative.
 
+A third stack settled the question. On GKE Autopilot, one L4, the largest
+Nemotron NIM that fits a 24 GB card — `llama-3.1-nemotron-nano-8b-v1` —
+accepted **0 of 8**, first answers and repairs alike, failing the same way
+every time: it offered to release `defensive_factor`, the one output no
+declaration can release.
+
+| stack | model | accepted first try |
+|-------|-------|--------------------|
+| API catalog | `nemotron-3-nano-30b-a3b` | 20/20 |
+| H100, self-hosted NIM | `nemotron-nano-9b-v2` | 0/20, repaired 20/20 |
+| GKE Autopilot, one L4 | `llama-3.1-nemotron-nano-8b-v1` | 0/8, never repaired |
+
+Three models, three rates, from perfect to nil. **In none of the three did a
+wrong statement reach the reader.** A demo that only ran the strongest model
+would show a system that works; this one shows a system that holds when the
+model does not, which is the only condition the boundary was built for
+([docs/readback.md](docs/readback.md)).
+
 This number calibrates *a model on a serving stack*. It is **not** a ranking
 statistic and must not be read as one — a different model on a different decoder
 is a different measurement, not a better or worse model. It has to be re-run
@@ -227,6 +245,16 @@ kubectl apply -f deploy/nim-l4.yaml
 kubectl port-forward svc/nim 8000:8000 &
 NVIDIA_BASE_URL=http://127.0.0.1:8000/v1 make ui
 ```
+
+It ran: one pod, one L4, `nim 1.8.4` answering on `/v1/version`, the whole
+path from receipt to post-validated answer. Seven things had to be fixed first
+and each is a comment in the manifest — global GPU quota, the Accelerator
+compute class, a cache volume, group ownership, the `Recreate` strategy, a
+pinned model profile, and a memory limit that was charging the engine for the
+memory-backed `/dev/shm` mounted inside it. That last one is worth the warning
+it carries: the readiness probe kept passing while the inference worker was
+being killed, so the pod reported `1/1` and every request returned *engine
+loop has died* — a liveness signal that was true about the wrong process.
 
 The service is `ClusterIP` and the demo reaches it through a port-forward. A
 NIM speaks an unauthenticated OpenAI-compatible API, and giving it a public
