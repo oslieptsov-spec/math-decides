@@ -31,7 +31,7 @@
       "id": "explain",
       "title": "Now, and only now, the model",
       "l1": "The receipt is sealed. Only now does the AI appear — and all it can do is read the receipt aloud in plain language.",
-      "l2": "It cannot add a number, change a status, or \"help\".",
+      "l2": "It cannot add a number, change a status, or \"help\". If the model's first draft misquotes the receipt — even by one truncated digit — it is rejected and rewritten. You may see that happen live.",
       "l3": "The provenance line names exactly what produced these words: which model, which build, which path."
     },
     {

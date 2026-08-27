@@ -157,6 +157,19 @@ Measured on `nvidia/nemotron-3-nano-30b-a3b` through the API catalog, ten runs
 per example: **20 of 20 answers accepted on the first attempt.**
 `tools/calibrate.py` reports it.
 
+On a self-hosted NIM the same repository met a different model with a habit of
+its own, and the measurement is worth more than the rate: `nemotron-nano-9b-v2`
+quotes `6.59` where the receipt says `6.59533333334` — a truncation, which at
+three significant digits is `6.60`. The prompt was changed twice to stop it,
+the second time with an explicit ban on truncation. **Twenty first answers
+across both attempts: twenty truncations.** The check caught every one, the
+repair fixed every one, and no wrong number ever reached the reader.
+
+A prompt is advice and this model took it and carried on. The check is not
+advice. That is the whole argument of this repository, arriving as a
+measurement on a model and a decoder neither the prompt nor the rule was
+written against ([docs/readback.md](docs/readback.md)).
+
 That figure was 13 of 20 until the prompt stopped printing the status codes it
 forbids. Naming a forbidden literal to a model is how it reaches the next
 answer, and the repair note was echoing whichever one had slipped — a refusal

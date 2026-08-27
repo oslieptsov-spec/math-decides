@@ -105,8 +105,9 @@ to get a corrected answer every time.
 Two attempts were made to fix it in the prompt before recording. The rule
 already forbade rounding past two significant digits; a line was added
 forbidding truncation outright, in the model's own terms and without an example
-that might prime the digits. Four runs after each edit: `6.59`, every time,
-unchanged.
+that might prime the digits. Ten runs before the rule and ten after it: `6.59`
+every time, twenty first answers out of twenty. The model answered in the end
+on all twenty, because the repair works.
 
 That is the argument of this repository arriving as a measurement. A prompt is
 advice; the model took it and carried on. The check is not advice, and it
