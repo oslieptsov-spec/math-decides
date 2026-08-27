@@ -108,7 +108,7 @@ def admissible_values(receipt):
         for factor in UNIT_FORMS.get(entry["unit"], (1.0,)):
             # The receipt the model was handed carries canonicalised numbers, so
             # those — not the raw floats behind them — are what prose may quote.
-            values.add(canonical._canon_float(entry["value"] * factor))
+            values.add(float(canonical._canon_number(entry["value"] * factor)))
 
     # Structural counts, kept to the few a summary actually needs. Every extra
     # count widens the admissible set and lets a wrong claim borrow a right

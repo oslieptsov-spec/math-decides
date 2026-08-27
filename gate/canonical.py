@@ -25,21 +25,33 @@ import math
 SIGNIFICANT_DIGITS = 12
 
 
-def _canon_float(x):
+def _canon_number(x):
+    """One representation per number, whatever spelling it arrived in.
+
+    JSON has a single number type, and 100 and 100.0 are the same number. They
+    were not the same receipt: a request typed in the browser serialises 100.0
+    as 100, and the gate hashed a different document than the one Python built
+    from the same preset. Two digests for one logical input is the failure this
+    module exists to prevent, so an integral value now renders as an integer
+    from either side.
+    """
+    if isinstance(x, int):
+        return x
     if math.isnan(x) or math.isinf(x):
         raise ValueError("non-finite value cannot be canonicalised")
     if x == 0.0:
-        return 0.0  # collapses -0.0
+        return 0  # collapses -0.0 and 0.0
     digits = SIGNIFICANT_DIGITS - 1 - math.floor(math.log10(abs(x)))
-    return round(x, digits) + 0.0
+    rounded = round(x, digits) + 0.0
+    return int(rounded) if rounded.is_integer() else rounded
 
 
 def canonicalise(obj):
     """Recursively normalise a receipt-shaped structure."""
-    if isinstance(obj, float):
-        return _canon_float(obj)
-    if isinstance(obj, bool) or obj is None or isinstance(obj, (int, str)):
+    if isinstance(obj, bool) or obj is None or isinstance(obj, str):
         return obj
+    if isinstance(obj, (int, float)):
+        return _canon_number(obj)
     if isinstance(obj, dict):
         return {str(k): canonicalise(v) for k, v in obj.items()}
     if isinstance(obj, (list, tuple)):

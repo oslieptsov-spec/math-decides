@@ -94,6 +94,28 @@ class Determinism(unittest.TestCase):
         body = {k: v for k, v in receipt.items() if k != "receipt_sha"}
         self.assertEqual(canonical.sha256_of(body), receipt["receipt_sha"])
 
+    def test_one_number_has_one_receipt_however_it_is_spelled(self):
+        """100 and 100.0 are the same number and must be the same receipt.
+
+        They were not: a request typed in a browser serialises 100.0 as 100,
+        so the page and the command line produced different digests for the
+        same preset — visible on screen as two receipt_sha values for one
+        example, which is the exact failure canonicalisation exists to prevent.
+        """
+        import json
+        request = examples.load("incomplete-laws")
+        as_written = json.loads(
+            json.dumps(request).replace("100.0", "100").replace("600000.0", "600000")
+            .replace("73200.0", "73200").replace("6000.0", "6000")
+            .replace("500.0", "500").replace("-2.0", "-2"))
+        self.assertEqual(engine.evaluate(request)["receipt_sha"],
+                         engine.evaluate(as_written)["receipt_sha"])
+
+    def test_integral_values_render_the_same_from_either_type(self):
+        self.assertEqual(canonical.dumps({"x": 100}), canonical.dumps({"x": 100.0}))
+        self.assertEqual(canonical.dumps({"x": 0}), canonical.dumps({"x": -0.0}))
+        self.assertNotEqual(canonical.dumps({"x": 100}), canonical.dumps({"x": 100.5}))
+
     def test_a_different_input_is_a_different_receipt(self):
         other = examples.load("declared-laws")
         other["order"]["size"] += 1.0

@@ -58,8 +58,8 @@ $ python3 -m gate incomplete-laws
 scenario     gap_panic_sweep
 declared     book_depth_profile
 undeclared   gap_size, liquidation_threshold, panic_multiplier
-input_hash   ed4e5e33a01674a7e99bef8c10e4693b738ece713b79ad347d662526417abd42
-receipt_sha  89660faf9eb45a6db0e5b40dd9c8d73239964a4a78c44172dffbfa0ab508bb64
+input_hash   9be18156139fb95fdc775640ea15f4bd6073d2cb1a6c163b41e30b9e3457788a
+receipt_sha  7f78e8f6f6611e19fa679a195c1a285515744b1dda6e679e6952f258bbb49adb
 ------------------------------------------------------------------------
 defensive_factor   WITHHELD_NO_DECLARED_LAW                    -
 fill_price         WITHHELD_MISSING_DECLARED_LAW               -
@@ -217,7 +217,7 @@ the catalog when the default was chosen now return 410 Gone
 ## Reproducing everything
 
 ```bash
-make test         # 161 tests, offline, no key required
+make test         # 163 tests, offline, no key required
 make attacks      # the suite
 make sabotage     # the negative control
 make results      # regenerate attacks/RESULTS.md

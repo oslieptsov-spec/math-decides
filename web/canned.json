@@ -1,28 +1,28 @@
 {
  "declared-laws": {
-  "receipt_sha": "19926a969678466e90114329f0b40ce9f5cada832df10cc23060db55375ea789",
+  "receipt_sha": "0f8cb04926073f40055c5e7433bd3e57f19ad9a75fa25c76b20ef8221db9672a",
   "explanation": {
-   "summary": "The engine computed three outputs: fill_price with a value of 102.57 price, liquidation_risk with a value of 0.44 probability, and slippage_bps with a value of 6.60 bps. The output defensive_factor remains withheld because no closing relation exists for it.",
+   "summary": "The engine computed three outputs: fill_price with a value of 102.567602167 price, liquidation_risk with a value of 0.441165760577 probability, and slippage_bps with a value of 6.59533333334 bps. The output defensive_factor remains withheld because no closing relation exists for it.",
    "outputs": [
     {
      "name": "fill_price",
      "status": "COMPUTABLE_READY",
-     "restated_reason": "All required laws are declared, so the dependency closes and the output can be released. It has a value of 102.57 price."
+     "restated_reason": "All required laws are declared, so the dependency closes and the output can be released."
     },
     {
      "name": "liquidation_risk",
      "status": "COMPUTABLE_READY",
-     "restated_reason": "All required laws are declared, so the dependency closes and the output can be released. It has a value of 0.44 probability."
+     "restated_reason": "All required laws are declared, so the dependency closes and the output can be released."
     },
     {
      "name": "slippage_bps",
      "status": "COMPUTABLE_READY",
-     "restated_reason": "All required laws are declared, so the dependency closes and the output can be released. It has a value of 6.60 bps."
+     "restated_reason": "All required laws are declared, so the dependency closes and the output can be released."
     },
     {
      "name": "defensive_factor",
      "status": "WITHHELD_NO_DECLARED_LAW",
-     "restated_reason": "No closing relation exists for this output, and declaring further laws will not change that status. It cannot be released."
+     "restated_reason": "No closing relation exists for this output, and declaring further laws will not change that status."
     }
    ],
    "unlock": [],
@@ -52,24 +52,24 @@
    },
    "returned": {
     "model": "nvidia/nemotron-3-nano-30b-a3b",
-    "response_id": "chatcmpl-03608ed9-c5e5-43f5-aa54-2c54314b0dba",
+    "response_id": "chatcmpl-2199d427-6630-45c9-a8f6-dc9f5eecaf9f",
     "system_fingerprint": null,
     "usage": {
-     "prompt_tokens": 959,
-     "completion_tokens": 396,
-     "total_tokens": 1355
+     "prompt_tokens": 964,
+     "completion_tokens": 378,
+     "total_tokens": 1342
     },
     "reasoning_returned": false
    },
-   "generated_at": "2026-08-26T16:36:00+00:00",
+   "generated_at": "2026-08-27T12:52:55+00:00",
    "reproducible": false,
    "note": "the endpoint supplies no build identifier; a provider-side model update is visible in behaviour, not in a version"
   }
  },
  "incomplete-laws": {
-  "receipt_sha": "89660faf9eb45a6db0e5b40dd9c8d73239964a4a78c44172dffbfa0ab508bb64",
+  "receipt_sha": "7f78e8f6f6611e19fa679a195c1a285515744b1dda6e679e6952f258bbb49adb",
   "explanation": {
-   "summary": "The system computed one output, slippage_bps, with a value of 6.59533333334 bps. All other outputs remain withheld: defensive_factor is withheld because no closing relation exists, and fill_price, liquidation_risk are withheld due to missing declared laws.",
+   "summary": "The system computed one output, slippage_bps, with a value of 6.59533333334 bps. All other outputs remain withheld: defensive_factor is withheld because no closing relation exists, fill_price is withheld due to missing gap_size, and liquidation_risk is withheld due to missing gap_size, panic_multiplier, and liquidation_threshold.",
    "outputs": [
     {
      "name": "defensive_factor",
@@ -112,9 +112,9 @@
     "defensive_factor"
    ],
    "next_questions": [
-    "Should the caller declare gap_size to unlock fill_price?",
-    "Should the caller declare gap_size, panic_multiplier, and liquidation_threshold to unlock liquidation_risk?",
-    "Should the caller consider defining a closing relation for defensive_factor or move it out of scope?"
+    "Should gap_size be declared to unlock fill_price?",
+    "Should gap_size, panic_multiplier, and liquidation_threshold be declared to unlock liquidation_risk?",
+    "Is it acceptable to leave defensive_factor unreachable?"
    ]
   },
   "source": "model",
@@ -135,23 +135,23 @@
    },
    "returned": {
     "model": "nvidia/nemotron-3-nano-30b-a3b",
-    "response_id": "chatcmpl-118ffd83-79dc-4291-b14c-88af253b634b",
+    "response_id": "chatcmpl-72b70e95-fbdd-48cb-945d-92d1d004f6a8",
     "system_fingerprint": null,
     "usage": {
-     "prompt_tokens": 997,
-     "completion_tokens": 425,
-     "total_tokens": 1422
+     "prompt_tokens": 1000,
+     "completion_tokens": 432,
+     "total_tokens": 1432
     },
     "reasoning_returned": false
    },
-   "generated_at": "2026-08-26T16:36:06+00:00",
+   "generated_at": "2026-08-27T12:53:00+00:00",
    "reproducible": false,
    "note": "the endpoint supplies no build identifier; a provider-side model update is visible in behaviour, not in a version"
   }
  },
  "_rejected_example": {
   "example": "incomplete-laws",
-  "receipt_sha": "89660faf9eb45a6db0e5b40dd9c8d73239964a4a78c44172dffbfa0ab508bb64",
+  "receipt_sha": "7f78e8f6f6611e19fa679a195c1a285515744b1dda6e679e6952f258bbb49adb",
   "source": "template",
   "attempts": [
    {
@@ -159,7 +159,15 @@
     "findings": [
      {
       "code": "STATUS_LITERAL_IN_PROSE",
-      "detail": "COMPUTABLE_READY in 'The system computed one output, slippage_bps, with a value o'"
+      "detail": "COMPUTABLE_READY in 'The system computed one output, slippage_bps, and released i'"
+     },
+     {
+      "code": "STATUS_LITERAL_IN_PROSE",
+      "detail": "WITHHELD_MISSING_DECLARED_LAW in 'The system computed one output, slippage_bps, and released i'"
+     },
+     {
+      "code": "STATUS_LITERAL_IN_PROSE",
+      "detail": "WITHHELD_NO_DECLARED_LAW in 'The system computed one output, slippage_bps, and released i'"
      }
     ]
    },
@@ -168,7 +176,15 @@
     "findings": [
      {
       "code": "STATUS_LITERAL_IN_PROSE",
-      "detail": "COMPUTABLE_READY in 'The system computed one output, slippage_bps, with a value o'"
+      "detail": "COMPUTABLE_READY in 'The system computed one output, slippage_bps, and released i'"
+     },
+     {
+      "code": "STATUS_LITERAL_IN_PROSE",
+      "detail": "WITHHELD_MISSING_DECLARED_LAW in 'The system computed one output, slippage_bps, and released i'"
+     },
+     {
+      "code": "STATUS_LITERAL_IN_PROSE",
+      "detail": "WITHHELD_NO_DECLARED_LAW in 'The system computed one output, slippage_bps, and released i'"
      }
     ]
    }
@@ -232,16 +248,16 @@
    },
    "returned": {
     "model": "nvidia/nemotron-3-nano-30b-a3b",
-    "response_id": "chatcmpl-af0360df-633d-41d0-aca8-cefcce64094e",
+    "response_id": "chatcmpl-5b0aa37d-d0b7-45e4-99e7-a22b99b2673f",
     "system_fingerprint": null,
     "usage": {
-     "prompt_tokens": 1532,
-     "completion_tokens": 480,
-     "total_tokens": 2012
+     "prompt_tokens": 1597,
+     "completion_tokens": 473,
+     "total_tokens": 2070
     },
     "reasoning_returned": false
    },
-   "generated_at": "2026-08-26T15:46:05+00:00",
+   "generated_at": "2026-08-27T12:53:16+00:00",
    "reproducible": false,
    "note": "the endpoint supplies no build identifier; a provider-side model update is visible in behaviour, not in a version"
   }
