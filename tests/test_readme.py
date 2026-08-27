@@ -89,6 +89,14 @@ class Claims(unittest.TestCase):
     def test_the_one_permitted_mention_is_prior_art(self):
         """The affiliation is not reproduced; the citation stands alone."""
         self.assertEqual(README.lower().count("ssrn"), 2)   # link text and URL
+        # The citation once carried the right sentence and the wrong paper's
+        # identifier — the defect this repository exists to catch, committed by
+        # its own README. The id is pinned so a link cannot drift off the title
+        # beside it, and the subtitle is pinned because a truncated title is
+        # how the wrong paper gets found under the right words.
+        self.assertIn("abstract_id=7334058", README)
+        self.assertNotIn("6893318", README)
+        self.assertIn("Certificates, Observed Order, and Spectral Domains", README)
         self.assertNotIn("Scientific Analytics", README)
 
 

@@ -341,7 +341,9 @@ The release-gate discipline this pattern borrows — a conjunctive fail-closed
 gate, a named reason for every non-release, and a published count of results
 released despite a failed check — comes from prior work on fail-closed release
 gates for numerical claims: *Slieptsov (2026), "Fail-Closed Release Gates for
-Numerical Operator Claims"*, [SSRN](https://ssrn.com/abstract=6893318).
+Numerical Operator Claims: Certificates, Observed Order, and Spectral Domains
+in Risk Computation"*,
+[SSRN](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7334058).
 
 The idea that a gate which has never blocked anything is untested policy is
 taken from there, and is the reason `--sabotage` exists.
