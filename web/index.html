@@ -417,6 +417,7 @@ dialog::backdrop{background:rgba(5,7,10,.8)}
       <span>path <b id="pv-path">—</b></span>
       <span>temp <b id="pv-temp">—</b></span>
       <span>answered by <b id="pv-source">—</b></span>
+      <span>structure <b id="pv-structure">—</b></span>
     </div>
     <div id="explanation"><p class="empty">no explanation yet</p></div>
   </section>
@@ -702,6 +703,7 @@ function renderExplanation(result){
                                || `n/a (${path})`;
   $('#pv-path').textContent = path;
   $('#pv-source').textContent = result.source;
+  $('#pv-structure').textContent = returned.structured_output || '—';
   $('#pv-temp').textContent = requested.temperature ?? '—';
   $('#pv-path').className = path === 'canned' ? 'canned' : 'live';
 

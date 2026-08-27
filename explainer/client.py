@@ -56,16 +56,29 @@ class Config:
                 "key_present": bool(self.api_key)}
 
 
-def build_body(config, messages, schema):
+def build_body(config, messages, schema, mode="json_schema"):
+    """The request, with structure imposed as strongly as the stack allows.
+
+    A strict JSON schema is the strongest form and the one the boundary would
+    like: the decoder refuses to emit anything else. Not every serving stack
+    offers it — an older NIM accepts only `text` or `json_object` — and the
+    honest response is to ask for the weaker form and say so in the
+    provenance, not to pretend the schema was enforced.
+
+    Nothing about the guarantee changes either way. The schema was never what
+    made the answer safe; the comparison against the receipt is.
+    """
+    response_format = (
+        {"type": "json_schema",
+         "json_schema": {"name": "explanation", "strict": True, "schema": schema}}
+        if mode == "json_schema" else {"type": "json_object"})
     return {
         "model": config.model,
         "messages": messages,
         "temperature": config.temperature,
         "max_tokens": config.max_tokens,
-        # Structure is imposed by the decoder, not requested in the prompt.
-        "response_format": {"type": "json_schema",
-                            "json_schema": {"name": "explanation", "strict": True,
-                                            "schema": schema}},
+        # Structure is imposed by the decoder where the decoder can impose it.
+        "response_format": response_format,
         "chat_template_kwargs": {"thinking": False},
     }
 
@@ -88,6 +101,25 @@ def post(config, body):
 
 
 _BUILD_CACHE = {}
+_SCHEMA_MODE_CACHE = {}
+
+
+def schema_mode(config, probe):
+    """Whether this endpoint accepts a strict schema, asked once and cached.
+
+    `probe` sends one tiny request; a 400 naming response_format is the stack
+    saying it only speaks the weaker form.
+    """
+    if config.base_url in _SCHEMA_MODE_CACHE:
+        return _SCHEMA_MODE_CACHE[config.base_url]
+    mode = "json_schema"
+    try:
+        probe("json_schema")
+    except TransportError as exc:
+        if "response_format" in str(exc):
+            mode = "json_object"
+    _SCHEMA_MODE_CACHE[config.base_url] = mode
+    return mode
 
 
 def probe_build(config):

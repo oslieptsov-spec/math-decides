@@ -255,7 +255,7 @@ the default was chosen now return 410 Gone
 ## Reproducing everything
 
 ```bash
-make test         # 163 tests, offline, no key required
+make test         # 166 tests, offline, no key required
 make attacks      # the suite
 make sabotage     # the negative control
 make results      # regenerate attacks/RESULTS.md

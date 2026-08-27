@@ -1,6 +1,14 @@
 # NIM on GKE Autopilot, following the "Deploy Faster Generative AI Models with
 # NVIDIA NIM on GKE" pathway. One pod, one L4, no external exposure.
 #
+# The model is llama-3.1-nemotron-nano-8b-v1 because it fits the card. Its
+# larger sibling, nemotron-nano-9b-v2, publishes exactly one profile —
+# vllm-bf16-tp1-pp1 — whose weights alone take about 18 of an L4's 23.7 GB,
+# and the engine fails to allocate the rest. There is no environment switch to
+# make it smaller: NIM_ENFORCE_EAGER is not a variable this image reads, and
+# the engine args log confirms it. That model is documented on an H100 in
+# docs/readback.md instead.
+#
 #   kubectl create secret docker-registry ngc-secret \
 #     --docker-server=nvcr.io --docker-username='$oauthtoken' \
 #     --docker-password="$NGC_API_KEY"
@@ -26,6 +34,9 @@ metadata:
   labels: {app: nim}
 spec:
   replicas: 1
+  # One GPU and a ReadWriteOnce volume: a rolling update would wait for a new
+  # pod that cannot start until the old one lets go, and both sit forever.
+  strategy: {type: Recreate}
   selector:
     matchLabels: {app: nim}
   template:
@@ -38,11 +49,18 @@ spec:
         # while forty node shapes decline it.
         cloud.google.com/compute-class: Accelerator
         cloud.google.com/gke-accelerator: nvidia-l4
+      # The image runs as uid 1000, and a freshly provisioned volume belongs
+      # to root: without fsGroup the container cannot create its cache
+      # directory and exits before it reaches the model.
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
       imagePullSecrets:
         - name: ngc-secret
       containers:
         - name: nim
-          image: nvcr.io/nim/nvidia/nvidia-nemotron-nano-9b-v2:latest
+          image: nvcr.io/nim/nvidia/llama-3.1-nemotron-nano-8b-v1:1.8.4
           ports:
             - containerPort: 8000
           env:
@@ -54,7 +72,14 @@ spec:
             # An L4 holds 24 GB and the weights take most of it, so the KV
             # cache is bounded rather than left to claim what is left.
             - name: NIM_MAX_MODEL_LEN
-              value: "8192"
+              value: "2048"
+            # This image publishes two profiles and picks the TensorRT-LLM one,
+            # which builds an engine at startup sized for a batch of 256 and
+            # will not fit a 24 GB card. The vLLM profile is the one that runs
+            # here, so it is named rather than left to a default that assumes a
+            # bigger GPU.
+            - name: NIM_MODEL_PROFILE
+              value: "4f904d571fe60ff24695b5ee2aa42da58cb460787a968f1e8a09f5a7e862728d"
           resources:
             requests:
               cpu: "4"

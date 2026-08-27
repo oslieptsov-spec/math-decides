@@ -282,6 +282,36 @@ class RequestShape(unittest.TestCase):
         self.assertEqual(one["properties"]["unreachable"]["items"]["enum"],
                          ["slippage_bps"])
 
+    def test_a_strict_schema_is_asked_for_first(self):
+        body = client.build_body(self.config, [], schema.explanation_schema())
+        self.assertEqual(body["response_format"]["type"], "json_schema")
+
+    def test_a_stack_without_it_gets_the_weaker_form(self):
+        """An older NIM accepts only text or json_object.
+
+        The guarantee never rested on the decoder: the schema makes a wrong
+        answer harder to produce, and the comparison against the receipt is
+        what makes it harmless. So the request asks for less rather than
+        failing, and the provenance says which was used.
+        """
+        body = client.build_body(self.config, [], schema.explanation_schema(),
+                                 "json_object")
+        self.assertEqual(body["response_format"], {"type": "json_object"})
+
+    def test_the_weaker_form_is_chosen_only_when_the_stack_refuses(self):
+        def refuses(mode):
+            raise client.TransportError(
+                "HTTP 400: response_format.type must be text or json_object")
+        client._SCHEMA_MODE_CACHE.clear()
+        self.config.base_url = "http://probe-refuses/v1"
+        self.assertEqual(client.schema_mode(self.config, refuses), "json_object")
+
+        client._SCHEMA_MODE_CACHE.clear()
+        self.config.base_url = "http://probe-accepts/v1"
+        self.assertEqual(client.schema_mode(self.config, lambda mode: None),
+                         "json_schema")
+        client._SCHEMA_MODE_CACHE.clear()
+
     def test_reasoning_is_switched_off(self):
         body = client.build_body(self.config, [], schema.explanation_schema())
         self.assertFalse(body["chat_template_kwargs"]["thinking"])

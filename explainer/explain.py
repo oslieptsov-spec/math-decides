@@ -64,15 +64,25 @@ def explain(receipt, config=None, transport=None):
     messages = [{"role": "system", "content": schema.SYSTEM_PROMPT},
                 {"role": "user", "content": schema.user_prompt(receipt_json)}]
 
+    def probe(mode):
+        body = client.build_body(
+            config, [{"role": "user", "content": "ok"}],
+            schema.explanation_schema(list(receipt["outputs"])), mode)
+        body["max_tokens"] = 1
+        send(body)
+
+    mode = client.schema_mode(config, probe)
     attempts, provenance = [], None
     for attempt in range(1, MAX_ATTEMPTS + 1):
         record = {"attempt": attempt}
         try:
             body = client.build_body(
-                config, messages, schema.explanation_schema(list(receipt["outputs"])))
+                config, messages,
+                schema.explanation_schema(list(receipt["outputs"])), mode)
             content, provenance = client.extract(send(body))
             provenance["build"] = (provenance.get("system_fingerprint")
                                    or client.probe_build(config))
+            provenance["structured_output"] = mode
         except client.TransportError as exc:
             record["findings"] = [{"code": "TRANSPORT_ERROR", "detail": str(exc)}]
             attempts.append(record)
