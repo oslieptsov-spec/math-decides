@@ -56,31 +56,67 @@ class Config:
                 "key_present": bool(self.api_key)}
 
 
+THINKING_OFF = "detailed thinking off"
+
+
+def without_thinking(messages):
+    """Reasoning off, by both of the switches that exist.
+
+    `chat_template_kwargs` is read by the templates that know it. The
+    llama-nemotron family ignores it and takes the instruction as the opening
+    line of the system message instead. Asked without that line, the model
+    here spent its entire token budget reasoning and returned an answer of
+    zero characters — a refusal produced by a switch that was set and not
+    read. Both are set, because the request cannot see which template will
+    read it, and a directive the template does not use costs a few tokens.
+    """
+    if not messages or messages[0].get("role") != "system":
+        return messages
+    head = messages[0]
+    if head.get("content", "").startswith(THINKING_OFF):
+        return messages
+    return ([{"role": "system",
+              "content": f"{THINKING_OFF}\n\n{head.get('content', '')}"}]
+            + list(messages[1:]))
+
+
 def build_body(config, messages, schema, mode="json_schema"):
     """The request, with structure imposed as strongly as the stack allows.
 
-    A strict JSON schema is the strongest form and the one the boundary would
-    like: the decoder refuses to emit anything else. Not every serving stack
-    offers it — an older NIM accepts only `text` or `json_object` — and the
-    honest response is to ask for the weaker form and say so in the
-    provenance, not to pretend the schema was enforced.
+    Three rungs, strongest first. `json_schema` is the OpenAI-standard form and
+    the one the boundary would like: the decoder refuses to emit anything else.
+    An older NIM rejects it at the door but takes the same schema through its
+    own `nvext` extension, which is the same guarantee under a different name.
+    `json_object` is the last rung and the weakest by a wide margin — it
+    constrains the answer to be JSON and nothing more.
 
-    Nothing about the guarantee changes either way. The schema was never what
+    The gap between the last two is not cosmetic. Asked for bare `json_object`,
+    the model here emitted nine hundred tokens of whitespace and one character
+    of answer: a grammar that permits unlimited spacing, and a small model that
+    took the permission. The same request under `nvext` returned the object in
+    four hundred.
+
+    Nothing about the guarantee changes on any rung. The schema was never what
     made the answer safe; the comparison against the receipt is.
     """
-    response_format = (
-        {"type": "json_schema",
-         "json_schema": {"name": "explanation", "strict": True, "schema": schema}}
-        if mode == "json_schema" else {"type": "json_object"})
-    return {
+    body = {
         "model": config.model,
-        "messages": messages,
+        "messages": without_thinking(messages),
         "temperature": config.temperature,
         "max_tokens": config.max_tokens,
-        # Structure is imposed by the decoder where the decoder can impose it.
-        "response_format": response_format,
         "chat_template_kwargs": {"thinking": False},
     }
+    # Structure is imposed by the decoder where the decoder can impose it.
+    if mode == "json_schema":
+        body["response_format"] = {
+            "type": "json_schema",
+            "json_schema": {"name": "explanation", "strict": True,
+                            "schema": schema}}
+    elif mode == "nvext":
+        body["nvext"] = {"guided_json": schema}
+    else:
+        body["response_format"] = {"type": "json_object"}
+    return body
 
 
 def post(config, body):
@@ -107,17 +143,21 @@ _SCHEMA_MODE_CACHE = {}
 def schema_mode(config, probe):
     """Whether this endpoint accepts a strict schema, asked once and cached.
 
-    `probe` sends one tiny request; a 400 naming response_format is the stack
-    saying it only speaks the weaker form.
+    `probe` sends one tiny request per rung and raises where the stack refuses
+    it. The strongest accepted rung wins; if a stack turns all three down, the
+    weakest is used and the real call reports whatever it reports rather than
+    this probe guessing.
     """
     if config.base_url in _SCHEMA_MODE_CACHE:
         return _SCHEMA_MODE_CACHE[config.base_url]
-    mode = "json_schema"
-    try:
-        probe("json_schema")
-    except TransportError as exc:
-        if "response_format" in str(exc):
-            mode = "json_object"
+    mode = "json_object"
+    for candidate in ("json_schema", "nvext", "json_object"):
+        try:
+            probe(candidate)
+        except TransportError:
+            continue
+        mode = candidate
+        break
     _SCHEMA_MODE_CACHE[config.base_url] = mode
     return mode
 

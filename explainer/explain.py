@@ -42,6 +42,19 @@ def _detail(finding):
     return "a raw status code appears in a prose field; paraphrase it instead"
 
 
+def _carry(messages, content):
+    """Put the rejected answer back in the conversation, if there was one.
+
+    An empty answer is a real outcome — a model that reasons past its budget
+    returns one — and the repair turn has to survive it. An assistant message
+    with no content is rejected by the endpoint before the model sees it, so
+    the repair for an empty answer was itself refused, turning a recoverable
+    attempt into a transport error. The finding already says what happened.
+    """
+    if content:
+        messages.append({"role": "assistant", "content": content})
+
+
 def repair_prompt(findings):
     lines = "\n".join(f"- {f['code']}: {_detail(f)}" for f in findings)
     hints = sorted({REPAIR_HINTS[f["code"]] for f in findings
@@ -96,7 +109,7 @@ def explain(receipt, config=None, transport=None):
             record["findings"] = [{"code": "EMPTY_OR_UNPARSEABLE_ANSWER",
                                    "detail": f"{len(content)} characters returned"}]
             attempts.append(record)
-            messages.append({"role": "assistant", "content": content})
+            _carry(messages, content)
             messages.append({"role": "user",
                              "content": repair_prompt(record["findings"])})
             continue
@@ -106,7 +119,7 @@ def explain(receipt, config=None, transport=None):
         attempts.append(record)
         if not findings:
             return _result(answer, receipt, config, provenance, attempts, "model")
-        messages.append({"role": "assistant", "content": content})
+        _carry(messages, content)
         messages.append({"role": "user", "content": repair_prompt(findings)})
 
     fallback = render.render(receipt)

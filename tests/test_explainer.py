@@ -307,6 +307,26 @@ class RequestShape(unittest.TestCase):
                                  "json_object")
         self.assertEqual(body["response_format"], {"type": "json_object"})
 
+    def test_the_same_schema_travels_under_the_nim_extension(self):
+        """A stack that refuses response_format still takes the schema."""
+        sch = schema.explanation_schema(["slippage_bps"])
+        body = client.build_body(self.config, [], sch, "nvext")
+        self.assertEqual(body["nvext"]["guided_json"], sch)
+        self.assertNotIn("response_format", body)
+
+    def test_the_extension_is_preferred_to_bare_json(self):
+        """Between a schema and "must be JSON", the schema wins."""
+        def refuses_only_the_standard_form(mode):
+            if mode == "json_schema":
+                raise client.TransportError(
+                    "HTTP 400: response_format.type must be text or json_object")
+        client._SCHEMA_MODE_CACHE.clear()
+        self.config.base_url = "http://probe-nvext/v1"
+        self.assertEqual(
+            client.schema_mode(self.config, refuses_only_the_standard_form),
+            "nvext")
+        client._SCHEMA_MODE_CACHE.clear()
+
     def test_the_weaker_form_is_chosen_only_when_the_stack_refuses(self):
         def refuses(mode):
             raise client.TransportError(
@@ -320,6 +340,32 @@ class RequestShape(unittest.TestCase):
         self.assertEqual(client.schema_mode(self.config, lambda mode: None),
                          "json_schema")
         client._SCHEMA_MODE_CACHE.clear()
+
+    def test_reasoning_is_also_switched_off_in_the_prompt(self):
+        """The kwarg is ignored by the family that needs the directive."""
+        body = client.build_body(
+            self.config, [{"role": "system", "content": "You restate a receipt."},
+                          {"role": "user", "content": "go"}],
+            schema.explanation_schema())
+        self.assertTrue(body["messages"][0]["content"].startswith(
+            "detailed thinking off"))
+        self.assertIn("You restate a receipt.", body["messages"][0]["content"])
+        self.assertEqual(body["messages"][1]["content"], "go")
+
+    def test_the_directive_is_not_stacked_on_itself(self):
+        once = client.without_thinking(
+            [{"role": "system", "content": "s"}, {"role": "user", "content": "u"}])
+        twice = client.without_thinking(once)
+        self.assertEqual(once, twice)
+
+    def test_an_empty_answer_is_not_replayed_to_the_endpoint(self):
+        """An assistant turn with no content is refused before the model reads it."""
+        messages = [{"role": "user", "content": "go"}]
+        explain._carry(messages, "")
+        self.assertEqual(len(messages), 1)
+        explain._carry(messages, "something")
+        self.assertEqual(messages[-1], {"role": "assistant",
+                                        "content": "something"})
 
     def test_reasoning_is_switched_off(self):
         body = client.build_body(self.config, [], schema.explanation_schema())
