@@ -20,3 +20,12 @@ battery doctrine
 nvapi-[A-Za-z0-9_-]{8,}
 AIza[0-9A-Za-z_-]{30,}
 -----BEGIN [A-Z ]*PRIVATE KEY-----
+
+# --- session infrastructure: names and addresses of the machine the H100 run
+# --- happened on. Nothing published should carry them; the sweep is what makes
+# --- that a guarantee rather than a habit.
+189\.1\.169\.61
+brev-[a-z0-9]{6,}
+shadeform
+arin22
+vf8pof7i2
