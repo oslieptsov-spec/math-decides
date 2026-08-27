@@ -214,6 +214,26 @@ the same OpenAI-compatible interface, so the same client reaches both:
 NVIDIA_BASE_URL=http://<your-nim>:8000/v1 make ui
 ```
 
+### Running on GKE
+
+[`deploy/nim-l4.yaml`](deploy/nim-l4.yaml) is one pod, one L4, on Autopilot:
+
+```bash
+kubectl create secret docker-registry ngc-secret --docker-server=nvcr.io \
+  --docker-username='$oauthtoken' --docker-password="$NGC_API_KEY"
+kubectl create secret generic ngc-api --from-literal=NGC_API_KEY="$NGC_API_KEY"
+kubectl apply -f deploy/nim-l4.yaml
+
+kubectl port-forward svc/nim 8000:8000 &
+NVIDIA_BASE_URL=http://127.0.0.1:8000/v1 make ui
+```
+
+The service is `ClusterIP` and the demo reaches it through a port-forward. A
+NIM speaks an unauthenticated OpenAI-compatible API, and giving it a public
+address to save one command would put an open inference endpoint on the
+internet. The model download is around 18 GB, so the pod asks for ephemeral
+storage explicitly — Autopilot's default is nowhere near it.
+
 `tools/readback.py` runs the same checks against that endpoint and writes a
 report — receipts, the offline suite, and acceptance with its findings — so
 that agreement between two decoders is recorded rather than assumed

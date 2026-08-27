@@ -29,3 +29,10 @@ brev-[a-z0-9]{6,}
 shadeform
 arin22
 vf8pof7i2
+
+# --- cluster addresses. A control-plane endpoint or a service address in a
+# --- screenshot is the same class of leak as a hostname, and habit is not a
+# --- guarantee.
+34\.55\.101\.251
+axial-entropy-484310-e5
+968187468023
