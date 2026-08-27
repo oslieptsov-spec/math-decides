@@ -587,9 +587,15 @@ async function refreshGpu(){
   } catch (e) { /* nothing measured and nothing declared, so no chip */ }
 }
 
+// Where the count outlives the process, the date it runs from is the claim.
+// Where it does not, saying "since <date>" would promise a running public
+// total that resets whenever the instance is recycled.
+let counterIsEphemeral = false;
+
 function setCounter(state){
   $('#count').textContent = state.attacks_blocked;
-  $('#since').textContent = 'since ' + state.since;
+  $('#since').textContent = counterIsEphemeral
+    ? 'on this instance' : 'since ' + state.since;
 }
 
 function clearPanels(){
@@ -1142,6 +1148,7 @@ function enterApp(){
   loadPreset();
   const state = await api('/api/state');
   currentMode = state.mode;
+  counterIsEphemeral = !!state.ephemeral;
   setCounter(state);
   renderLog(state.recent);
   $('#mode').textContent = state.mode;

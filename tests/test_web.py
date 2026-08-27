@@ -170,6 +170,50 @@ class Evaluate(unittest.TestCase):
         self.assertEqual(len(verdict["receipt"]["outputs"]), 4)
 
 
+class Stub:
+    def __init__(self, address, headers=None):
+        self.client_address = (address, 51000)
+        self.headers = headers or {}
+
+
+class ThePerIpLimitCountsTheRightIp(unittest.TestCase):
+    """Behind a proxy the socket address is the proxy's, not a visitor's."""
+
+    def tearDown(self):
+        os.environ.pop("TRUST_FORWARDED_FOR", None)
+
+    def test_the_socket_address_is_used_by_default(self):
+        who = server.caller(Stub("203.0.113.7", {"X-Forwarded-For": "198.51.100.9"}))
+        self.assertEqual(who, "203.0.113.7")
+
+    def test_a_forwarded_client_is_used_where_a_proxy_is_declared(self):
+        os.environ["TRUST_FORWARDED_FOR"] = "1"
+        who = server.caller(Stub("169.254.1.1",
+                                 {"X-Forwarded-For": "198.51.100.9, 169.254.1.1"}))
+        self.assertEqual(who, "198.51.100.9")
+
+    def test_an_empty_header_falls_back_rather_than_bucketing_everyone(self):
+        os.environ["TRUST_FORWARDED_FOR"] = "1"
+        self.assertEqual(server.caller(Stub("203.0.113.7", {})), "203.0.113.7")
+        self.assertEqual(server.caller(Stub("203.0.113.7",
+                                            {"X-Forwarded-For": "  "})),
+                         "203.0.113.7")
+
+
+class TheCounterSaysWhatItCounts(unittest.TestCase):
+    """A tally that resets on a cold start must not claim a date to run from."""
+
+    def tearDown(self):
+        os.environ.pop("COUNTER_EPHEMERAL", None)
+
+    def test_a_durable_counter_is_the_default(self):
+        self.assertFalse(server.api_state()["ephemeral"])
+
+    def test_a_container_declares_its_count_ephemeral(self):
+        os.environ["COUNTER_EPHEMERAL"] = "1"
+        self.assertTrue(server.api_state()["ephemeral"])
+
+
 class TheChipSeparatesMeasuredFromDeclared(unittest.TestCase):
     """A card in this machine is read; a cluster over the network is asserted."""
 

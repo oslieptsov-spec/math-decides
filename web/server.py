@@ -61,6 +61,24 @@ DRAIN_CHUNK = 64 * 1024
 _hits = defaultdict(deque)
 
 
+def caller(handler):
+    """The address the per-IP limit should count against.
+
+    Behind a proxy every request arrives from the proxy, so counting the socket
+    address would put the whole internet in one bucket: sixty requests a minute
+    shared by every visitor, and the demo rate-limiting itself the moment two
+    people opened it. The forwarded header carries the original client, and is
+    trusted only where the deployment says a proxy is in front — a header any
+    client can set is not evidence unless something strips it first.
+    """
+    if os.environ.get("TRUST_FORWARDED_FOR"):
+        forwarded = handler.headers.get("X-Forwarded-For", "")
+        first = forwarded.split(",")[0].strip()
+        if first:
+            return first
+    return handler.client_address[0]
+
+
 def _rate_limited(address):
     limit, window = RATE_LIMIT
     now = time.time()
@@ -166,6 +184,19 @@ def mode():
     return "nim" if config.path == "nim" else "api-catalog"
 
 
+def ephemeral_counter():
+    """Whether the count survives the process that is reporting it.
+
+    On a machine with a disk, "blocked since <date>" is a running total and the
+    date is load-bearing. On a container runtime that stops the instance when
+    nobody is looking, the same sentence promises a public tally that quietly
+    returns to zero on the next cold start — a number nobody can account for,
+    which is the one thing this counter exists not to be. Where the deployment
+    says the count is ephemeral, the page counts this instance and says so.
+    """
+    return bool(os.environ.get("COUNTER_EPHEMERAL"))
+
+
 def declared_deployment():
     """Where this instance was deployed, according to whoever deployed it.
 
@@ -196,7 +227,7 @@ def api_state():
     state = _load_counter()
     state["resets"] = len(state.get("resets", []))
     return dict(state, mode=mode(), model=config.model, hardware=hardware(),
-                deployment=declared_deployment(),
+                deployment=declared_deployment(), ephemeral=ephemeral_counter(),
                 path=config.path, examples=sorted(examples.EXAMPLES))
 
 
@@ -395,7 +426,7 @@ class Handler(BaseHTTPRequestHandler):
         handler = ROUTES_GET.get(self.path)
         if handler is None:
             return self._send(404, {"error": "NOT_FOUND"})
-        if _rate_limited(self.client_address[0]):
+        if _rate_limited(caller(self)):
             return self._send(429, {"error": "RATE_LIMITED"})
         return self._send(200, handler())
 
@@ -403,7 +434,7 @@ class Handler(BaseHTTPRequestHandler):
         handler = ROUTES_POST.get(self.path)
         if handler is None:
             return self._send(404, {"error": "NOT_FOUND"})
-        if _rate_limited(self.client_address[0]):
+        if _rate_limited(caller(self)):
             return self._send(429, {"error": "RATE_LIMITED"})
         length = int(self.headers.get("Content-Length") or 0)
         if length > MAX_BODY:
@@ -433,7 +464,10 @@ def free_port(host, start, attempts=20):
 
 def serve(host="127.0.0.1", port=None, auto=True):
     """Serve the page. Busy ports are reported, not silently worked around."""
-    port = int(port or os.environ.get("GATE_PORT") or DEFAULT_PORT)
+    # PORT is what a container runtime hands us; GATE_PORT is what a developer
+    # pins by hand. The explicit one wins over the injected one.
+    port = int(port or os.environ.get("GATE_PORT")
+               or os.environ.get("PORT") or DEFAULT_PORT)
     try:
         httpd = ThreadingHTTPServer((host, port), Handler)
     except OSError as exc:

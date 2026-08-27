@@ -1,0 +1,18 @@
+# What is uploaded to build the image. Everything the running service does not
+# need is left out, and two things are excluded because they must never leave
+# this machine at all.
+.git/
+.gitignore
+.env
+*.key
+gtc-berlin-demo.md
+
+__pycache__/
+*.pyc
+.venv/
+tests/
+tools/
+docs/
+deploy/
+*.md
+Makefile
