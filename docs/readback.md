@@ -77,6 +77,20 @@ and a difference between two decoders is a measurement, not a verdict on either.
 The comparison here is across **different models**, for the reason stated at the
 top, so it says nothing about which decoder is stricter.
 
+### A build identifier does exist here
+
+`system_fingerprint` is null on both paths, and that was read as no build being
+available anywhere. It was wrong in the direction that matters: NIM publishes
+one on its own route.
+
+```
+GET /v1/version  →  {"release": "1.12.2", "api": "3.1.0"}
+```
+
+Provenance now reads `build nim 1.12.2 (api 3.1.0)` on this path and keeps
+saying `n/a (api-catalog)` on the hosted one, where no such route exists. The
+absence belongs to the path, and now so does the presence.
+
 ### The zero is the interesting number
 
 `incomplete-laws` failed its first answer ten times out of ten, always with the
@@ -87,6 +101,19 @@ The receipt says `6.59533333334`. At three significant digits that rounds to
 `6.60`; `6.59` is a truncation. The rule refuses it, correctly — a truncation
 misstates the value at the precision it claims — and the repair note is enough
 to get a corrected answer every time.
+
+Two attempts were made to fix it in the prompt before recording. The rule
+already forbade rounding past two significant digits; a line was added
+forbidding truncation outright, in the model's own terms and without an example
+that might prime the digits. Four runs after each edit: `6.59`, every time,
+unchanged.
+
+That is the argument of this repository arriving as a measurement. A prompt is
+advice; the model took it and carried on. The check is not advice, and it
+caught the same habit on every first answer, on a model and a decoder neither
+was written against. The cost is one extra round trip on one preset — ten
+seconds instead of five — and the benefit is that nothing wrong ever reaches
+the reader.
 
 What that demonstrates is worth more than a matching acceptance rate would
 have been. The post-validator was written against one model's habits on one
