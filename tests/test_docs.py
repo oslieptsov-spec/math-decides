@@ -77,8 +77,10 @@ class Honesty(unittest.TestCase):
             self.assertIn(phrase, DOCS, phrase)
 
     def test_every_referenced_path_exists(self):
+        """Resolved from the document, the way a reader's client resolves it."""
+        base = (ROOT / "DOCS.md").parent
         for target in re.findall(r"\]\((?!https?:)([^)#]+)\)", DOCS):
-            self.assertTrue((ROOT / target).exists(), target)
+            self.assertTrue((base / target).exists(), target)
 
     def test_the_readme_points_here(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")

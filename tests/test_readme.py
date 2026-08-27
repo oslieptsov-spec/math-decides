@@ -82,8 +82,9 @@ class Claims(unittest.TestCase):
         self.assertIn("MIT License", (ROOT / "LICENSE").read_text(encoding="utf-8"))
 
     def test_every_linked_path_exists(self):
+        base = (ROOT / "README.md").parent
         for target in re.findall(r"\]\((?!https?:)([^)#]+)\)", README):
-            self.assertTrue((ROOT / target).exists(), target)
+            self.assertTrue((base / target).exists(), target)
 
     def test_the_one_permitted_mention_is_prior_art(self):
         """The affiliation is not reproduced; the citation stands alone."""

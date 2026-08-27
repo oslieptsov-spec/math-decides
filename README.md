@@ -207,9 +207,12 @@ that agreement between two decoders is recorded rather than assumed
 ([docs/H100.md](docs/H100.md) is the session runbook).
 
 The mode chip on the page names which path answered, and provenance is recorded
-per answer: model, build, temperature, path. The endpoint supplies no build
-identifier, so a provider-side model update is visible in behaviour rather than
-in a version — which is exactly what the acceptance rate above is for.
+per answer: model, build, temperature, path. Neither path supplies a build
+identifier — measured on both — so a provider-side model update is visible in
+behaviour rather than in a version, which is exactly what the acceptance rate
+above is for. It happened during this project: three Nemotron models listed in
+the catalog when the default was chosen now return 410 Gone
+([docs/readback.md](docs/readback.md)).
 
 ## Reproducing everything
 

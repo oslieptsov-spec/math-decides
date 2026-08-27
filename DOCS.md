@@ -212,9 +212,10 @@ costs a phrasing; the alternative costs the guarantee.
 
 Every answer records what produced it: `model`, `build`, `temperature`, `path`
 (`api-catalog`, `nim`, or `canned`), the response id, and whether reasoning was
-returned. The hosted catalog returns no build identifier, so the page shows
-`n/a (api-catalog)` rather than "not supplied" — the absence belongs to the
-path, and a self-hosted NIM fills it in. The explanation is **bound** to a receipt digest and is not
+returned. The page shows `n/a (<path>)` rather than "not supplied", because the
+absence belongs to the path. It was assumed a self-hosted NIM would fill it in;
+[docs/readback.md](docs/readback.md) records that it does not — `system_fingerprint` came
+back null there too, so no build identifier is available on either path. The explanation is **bound** to a receipt digest and is not
 reproducible from it — a language model is not a deterministic function, and the
 page says so in its footer.
 

@@ -673,8 +673,8 @@ function renderExplanation(result){
 
   const path = result.mode || requested.path || '—';
   $('#pv-model').textContent = returned.model || requested.model || '—';
-  // "not supplied" reads as an oversight. It is a property of the path: the
-  // hosted catalog returns no build identifier, and a self-hosted NIM does.
+  // Measured on both paths: neither the hosted catalog nor a self-hosted NIM
+  // returns a build identifier. Naming the path is the honest form of the gap.
   $('#pv-build').textContent = returned.system_fingerprint || `n/a (${path})`;
   $('#pv-path').textContent = path;
   $('#pv-source').textContent = result.source;
