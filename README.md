@@ -246,6 +246,13 @@ kubectl port-forward svc/nim 8000:8000 &
 NVIDIA_BASE_URL=http://127.0.0.1:8000/v1 make ui
 ```
 
+[![the boundary holding on GKE](docs/img/gke-refused.png)](docs/img/gke-refused.png)
+
+That is the live GKE path: `nim 1.8.4`, the schema carried through `nvext`,
+two model answers rejected against the receipt, and the deterministic renderer
+answering in their place. The receipt digest is the same one the gate sealed
+before the model was called.
+
 It ran: one pod, one L4, `nim 1.8.4` answering on `/v1/version`, the whole
 path from receipt to post-validated answer. Seven things had to be fixed first
 and each is a comment in the manifest — global GPU quota, the Accelerator

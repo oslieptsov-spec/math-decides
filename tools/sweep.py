@@ -49,6 +49,28 @@ def git(*args):
     ).stdout
 
 
+def git_bytes(*args):
+    return subprocess.run(
+        ["git", *args], cwd=ROOT, capture_output=True).stdout
+
+
+def as_text(raw):
+    """The blob as text, or None if it is not text at all.
+
+    A PNG is a few hundred thousand random bytes, and random bytes spell
+    things. Decoded with replacement characters, one screenshot produced a
+    three-letter match against the denylist and blocked a commit that
+    contained no such string — a check that fails on noise teaches its owner
+    to bypass it, which is worse than not having it.
+    """
+    if b"\x00" in raw:
+        return None
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+
+
 def scan_lines(rules, allow, path, text, hits):
     for n, line in enumerate(text.splitlines(), 1):
         for rx in rules:
@@ -93,7 +115,9 @@ def main():
             if not f:
                 continue
             scan_name(rules, allow, f, hits)
-            scan_lines(rules, allow, f, git("show", f":{f}"), hits)
+            text = as_text(git_bytes("show", f":{f}"))
+            if text is not None:
+                scan_lines(rules, allow, f, text, hits)
     else:
         for f in git("ls-files").splitlines():
             if not f:
