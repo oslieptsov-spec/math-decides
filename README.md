@@ -146,7 +146,7 @@ tested". They are kept apart here.
 
 | claim | status |
 |-------|--------|
-| The receipt is reproducible bit for bit for the same input | **proven by test**, within one runtime and architecture. Cross-architecture digest equality is expected and *not yet verified*; `tools/arch_receipts.py` exists to check it. |
+| The receipt is reproducible bit for bit for the same input | **proven by test**, and verified across two architectures: darwin/arm64 on CPython 3.14 and linux/x86_64 on CPython 3.12 produce identical digests ([docs/arch-digests.md](docs/arch-digests.md)). A claim about what was run, not a theorem about every machine. |
 | The model cannot change a status | **structural.** The receipt is computed and hashed before the model is called, and the interface renders statuses from the receipt. There is no path, so there is nothing to filter. |
 | These 35 attacks are stopped | **measured on this suite.** Evidence that these are stopped, not proof that an unlisted one would be. |
 | The explanation is correct | **not claimed.** What is checked is agreement with the receipt on statuses, numbers, unlock lists and reason attribution. Prose can be true, checked, and still unhelpful; this repository does not claim otherwise. |

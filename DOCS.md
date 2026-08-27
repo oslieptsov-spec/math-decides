@@ -93,12 +93,13 @@ The rounding is the one that matters. Arithmetic that differs in the last bit �
 a different libm, a reordered sum — would otherwise produce a different receipt
 for the same input.
 
-**Scope of the claim.** Receipts are reproducible bit for bit within one runtime
-and architecture, verified across processes and hash seeds. Digest equality
-*across* architectures is expected — every operation involved is IEEE-754 and
-the rounding is explicit — but expectation is not evidence, and it is not
-claimed. `tools/arch_receipts.py` prints the digests to compare on a second
-machine.
+**Scope of the claim.** Receipts are reproducible bit for bit across processes,
+hash seeds, and — now measured rather than expected — across two architectures
+and two CPython versions: darwin/arm64 on 3.14 and linux/x86_64 on 3.12 produce
+identical digests, including the raw floats behind the rounding
+([docs/arch-digests.md](docs/arch-digests.md)). That is a claim about the two
+machines that were run, not a theorem about every machine;
+`tools/arch_receipts.py` prints the digests for a third.
 
 ## 4. The post-validation contract
 
