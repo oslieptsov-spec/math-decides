@@ -220,11 +220,16 @@ that agreement between two decoders is recorded rather than assumed
 ([docs/H100.md](docs/H100.md) is the session runbook).
 
 The mode chip on the page names which path answered, and provenance is recorded
-per answer: model, build, temperature, path. Neither path supplies a build
-identifier — measured on both — so a provider-side model update is visible in
-behaviour rather than in a version, which is exactly what the acceptance rate
-above is for. It happened during this project: three Nemotron models listed in
-the catalog when the default was chosen now return 410 Gone
+per answer: model, build, temperature, path. The build differs by path, and the
+difference is worth knowing: neither endpoint returns `system_fingerprint`, but
+a self-hosted NIM publishes a version on `/v1/version`, so provenance reads
+`build nim 1.12.2 (api 3.1.0)` there and `n/a (api-catalog)` on the hosted path,
+where no such route exists.
+
+Where no build is available, a provider-side change is visible in behaviour
+rather than in a version — which is what the acceptance rate above is for. It
+happened during this project: three Nemotron models listed in the catalog when
+the default was chosen now return 410 Gone
 ([docs/readback.md](docs/readback.md)).
 
 ## Reproducing everything

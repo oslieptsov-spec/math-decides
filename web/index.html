@@ -673,6 +673,11 @@ function renderReceipt(receipt){
   }
 
   setResult(receipt);
+  // If a card is on screen quoting counts, it was drawn from whatever existed
+  // then. Redraw it now that the receipt does.
+  if (tourAt >= 0 && TOUR[tourAt] && !TOUR[tourAt].sabotage){
+    tourCard(tourAt, TOUR[tourAt]);
+  }
   $('#ch-input').textContent = short(receipt.input_hash);
   $('#ch-receipt').textContent = short(receipt.receipt_sha);
   $('#canonical').textContent = JSON.stringify(receipt, null, 2);
@@ -890,7 +895,7 @@ document.addEventListener('click', async e => {
 });
 
 $('#preset').addEventListener('change', loadPreset);
-$('#run').addEventListener('click', validate);
+$('#run').addEventListener('click', () => { pendingValidate = validate(); });
 $('#fire').addEventListener('click', async () => {
   const verdict = await api('/api/freetext', {text: $('#freetext').value});
   if (verdict.ok) logLine({...verdict, title:'free text: ' + $('#freetext').value.slice(0,44)});
@@ -954,6 +959,10 @@ let tourHandler = null;
 // A step whose evidence is a click needs that click to have happened before a
 // still is taken. Deep links fire it once; a visitor clicks it themselves.
 let tourAutoFire = false;
+// The step that follows a press must wait for the press to finish. A fixed
+// delay was enough on a laptop and not enough across a continent: the card
+// rendered its counts before the receipt existed and read "0 computed".
+let pendingValidate = null;
 
 function setScene(keys){
   const main = document.querySelector('main');
@@ -1030,7 +1039,7 @@ function tourCard(index, step){
         tourHandler = null;
       }
       document.querySelector(step.pulse)?.click();
-      setTimeout(() => tourGo(index + 1), 900);
+      setTimeout(async () => { await pendingValidate; tourGo(index + 1); }, 400);
       return;
     }
     tourGo(index + 1);
@@ -1062,7 +1071,8 @@ async function tourGo(index){
 
   if (step.advanceOn){
     tourHandler = e => {
-      if (e.target.closest(step.advanceOn)) setTimeout(() => tourGo(index + 1), 900);
+      if (!e.target.closest(step.advanceOn)) return;
+      setTimeout(async () => { await pendingValidate; tourGo(index + 1); }, 400);
     };
     document.addEventListener('click', tourHandler, true);
   }
