@@ -37,16 +37,29 @@ def load_env(root=None):
             os.environ.setdefault(key.strip(), value.strip())
 
 
+def _int_env(name, fallback):
+    try:
+        return max(1, int(os.environ[name]))
+    except (KeyError, ValueError):
+        return fallback
+
+
 class Config:
     def __init__(self, model=None, base_url=None, temperature=0.0,
-                 max_tokens=DEFAULT_MAX_TOKENS, timeout=DEFAULT_TIMEOUT, path=None):
+                 max_tokens=DEFAULT_MAX_TOKENS, timeout=None, path=None):
         load_env()
         self.api_key = os.environ.get("NVIDIA_API_KEY")
         self.base_url = base_url or os.environ.get("NVIDIA_BASE_URL", DEFAULT_BASE_URL)
         self.model = model or os.environ.get("NVIDIA_MODEL", DEFAULT_MODEL)
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self.timeout = timeout
+        # Sixty seconds is generous for a hosted endpoint and short for a small
+        # card: an L4 serving an 8B model takes eighty to produce one
+        # explanation, so a fixed default turned a working deployment into a
+        # transport error. The number is a property of the stack, not of the
+        # client, so the stack's operator sets it.
+        self.timeout = timeout if timeout is not None else _int_env(
+            "NVIDIA_TIMEOUT", DEFAULT_TIMEOUT)
         self.path = path or ("nim" if "integrate.api.nvidia.com" not in self.base_url
                              else "api-catalog")
         # Where the NIM runs is not discoverable from its API: a self-hosted

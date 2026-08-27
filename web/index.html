@@ -39,6 +39,8 @@ header .spacer{flex:1}
 .chip[data-mode="nim"]{color:var(--accent);border-color:#2f4a12}
 .chip[data-mode="canned"]{color:var(--amber);border-color:#4a3a12}
 #hardware{color:var(--accent);border-color:#2f4a12}
+/* A declared label is drawn as a claim, not as a reading. */
+#hardware.declared{border-style:dashed;cursor:help}
 
 /* ---- intro ------------------------------------------------------------ */
 .intro{padding:12px 20px;border-bottom:1px solid var(--line);background:var(--bg)}
@@ -549,19 +551,40 @@ function loadPreset(){
   $('#preset-note').textContent = presetNote(name);
 }
 
-function paintGpu(gpu){
-  if (!gpu) return;
+const DECLARED_TIP = 'declared by the operator, not detected from the API';
+
+// Two sources, and the chip never blurs them. A local card is measured, down
+// to memory already committed and a utilisation figure that moves while the
+// model answers. A NIM over the network reports a model and a version and
+// nothing about the machine under it, so where it runs arrives as a
+// declaration and is drawn as one — same hover as the provenance label, and
+// deliberately no gauge, because a gauge would look like a measurement.
+function paintGpu(gpu, deployment){
   const chip = $('#hardware');
-  chip.hidden = false;
-  chip.textContent = gpu.memory_total_gb
-    ? `${gpu.name} · ${gpu.memory_used_gb}/${gpu.memory_total_gb} GB · ${gpu.utilization_pct}%`
-    : gpu.name;
+  if (gpu){
+    chip.hidden = false;
+    chip.classList.remove('declared');
+    chip.title = 'measured on this machine by nvidia-smi';
+    chip.textContent = gpu.memory_total_gb
+      ? `${gpu.name} · ${gpu.memory_used_gb}/${gpu.memory_total_gb} GB · ${gpu.utilization_pct}%`
+      : gpu.name;
+    return;
+  }
+  if (deployment){
+    chip.hidden = false;
+    chip.classList.add('declared');
+    chip.title = DECLARED_TIP;
+    chip.textContent = deployment;
+  }
 }
 
 // Sampled again after every answer, so the figure a viewer sees is the state
 // the machine was in when it answered — not a value painted once at load.
 async function refreshGpu(){
-  try { paintGpu((await api('/api/gpu')).gpu); } catch (e) { /* no GPU, no chip */ }
+  try {
+    const r = await api('/api/gpu');
+    paintGpu(r.gpu, r.deployment);
+  } catch (e) { /* nothing measured and nothing declared, so no chip */ }
 }
 
 function setCounter(state){
@@ -1123,12 +1146,17 @@ function enterApp(){
   renderLog(state.recent);
   $('#mode').textContent = state.mode;
   $('#mode').dataset.mode = state.mode;
-  // Named only when it is real: the server reports the accelerator it found,
-  // and the page says nothing when there is none.
-  if (state.hardware){
-    paintGpu(state.hardware);
+  // Named only when there is something to name — a card this machine can
+  // measure, or a deployment its operator declared. The hero line says "on"
+  // for the first and "deployed on" for the second, because one is where the
+  // model is and the other is where somebody put it.
+  if (state.hardware || state.deployment){
+    paintGpu(state.hardware, state.deployment);
+    const where = state.hardware
+      ? `on <b>${esc(state.hardware.name)}</b>`
+      : `deployed on <b title="${DECLARED_TIP}">${esc(state.deployment)}</b>`;
     $('#hero-stack').innerHTML =
-      `built with <b>Nemotron</b> · <b>NVIDIA NIM</b> on <b>${esc(state.hardware.name)}</b>`
+      `built with <b>Nemotron</b> · <b>NVIDIA NIM</b> ${where}`
       + ` · <b>${esc(state.model.replace(/^nvidia\//, ''))}</b> · open source (MIT)`;
   }
   await loadGroups();

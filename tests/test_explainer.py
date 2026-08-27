@@ -341,6 +341,19 @@ class RequestShape(unittest.TestCase):
                          "json_schema")
         client._SCHEMA_MODE_CACHE.clear()
 
+    def test_the_timeout_follows_the_stack_it_talks_to(self):
+        """An L4 needs eighty seconds where a hosted endpoint needs five."""
+        import os
+        self.assertEqual(client.Config().timeout, client.DEFAULT_TIMEOUT)
+        os.environ["NVIDIA_TIMEOUT"] = "300"
+        try:
+            self.assertEqual(client.Config().timeout, 300)
+            os.environ["NVIDIA_TIMEOUT"] = "not a number"
+            self.assertEqual(client.Config().timeout, client.DEFAULT_TIMEOUT)
+        finally:
+            del os.environ["NVIDIA_TIMEOUT"]
+        self.assertEqual(client.Config(timeout=7).timeout, 7)
+
     def test_where_it_runs_is_declared_and_labelled_as_declared(self):
         """A NIM's API cannot say which cluster it is in, so the label says who said so."""
         import os

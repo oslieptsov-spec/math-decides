@@ -2,6 +2,7 @@
 enforces is a rule an attacker skips."""
 import inspect
 import json
+import os
 import unittest
 from pathlib import Path
 
@@ -167,6 +168,29 @@ class Evaluate(unittest.TestCase):
         verdict = server.api_evaluate({"example": "declared-laws"})
         self.assertTrue(verdict["ok"])
         self.assertEqual(len(verdict["receipt"]["outputs"]), 4)
+
+
+class TheChipSeparatesMeasuredFromDeclared(unittest.TestCase):
+    """A card in this machine is read; a cluster over the network is asserted."""
+
+    def tearDown(self):
+        os.environ.pop("NIM_DEPLOYMENT", None)
+
+    def test_nothing_is_declared_by_default(self):
+        self.assertIsNone(server.api_gpu()["deployment"])
+        self.assertIsNone(server.api_state()["deployment"])
+
+    def test_a_declared_deployment_travels_as_its_own_field(self):
+        os.environ["NIM_DEPLOYMENT"] = "GKE Autopilot · NVIDIA L4"
+        self.assertEqual(server.api_gpu()["deployment"], "GKE Autopilot · NVIDIA L4")
+        self.assertEqual(server.api_state()["deployment"], "GKE Autopilot · NVIDIA L4")
+
+    def test_declaring_one_invents_no_telemetry(self):
+        """The gap is left visible rather than filled with a plausible gauge."""
+        os.environ["NIM_DEPLOYMENT"] = "GKE Autopilot · NVIDIA L4"
+        payload = server.api_gpu()
+        self.assertNotIn("memory_total_gb", json.dumps(payload["deployment"]))
+        self.assertIn("gpu", payload)
 
 
 if __name__ == "__main__":

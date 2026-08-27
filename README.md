@@ -273,6 +273,14 @@ declared by whoever started the process and says so on hover, because a NIM's
 API cannot report which cluster it runs in and a label that looks measured
 would be the one dishonest thing on the page.
 
+The header chip follows the same rule, and it is the reason the chip carries no
+gauge. Where the card is in this machine, `nvidia-smi` reports memory already
+committed and a utilisation figure that moves while the model answers, and the
+chip shows both. Where the NIM is reached over a network, none of that exists —
+so the chip names the deployment, draws its border dashed and repeats the same
+hover. A memory bar invented to fill that gap would look exactly like a
+measurement.
+
 Seven things had to be fixed first
 and each is a comment in the manifest — global GPU quota, the Accelerator
 compute class, a cache volume, group ownership, the `Recreate` strategy, a
@@ -309,7 +317,7 @@ the default was chosen now return 410 Gone
 ## Reproducing everything
 
 ```bash
-make test         # 174 tests, offline, no key required
+make test         # 178 tests, offline, no key required
 make attacks      # the suite
 make sabotage     # the negative control
 make results      # regenerate attacks/RESULTS.md

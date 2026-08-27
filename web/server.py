@@ -166,6 +166,21 @@ def mode():
     return "nim" if config.path == "nim" else "api-catalog"
 
 
+def declared_deployment():
+    """Where this instance was deployed, according to whoever deployed it.
+
+    An H100 in the same machine can be measured: `nvidia-smi` reports memory
+    already committed and a utilisation figure that moves while the model is
+    answering. A NIM reached over the network cannot be. Its API returns a
+    model and a version — both detected — and says nothing about the card, the
+    zone or the cluster. Those are known to the operator and to nobody else,
+    so they are carried as a declaration and labelled as one. A gauge invented
+    to fill the gap would look exactly like a measurement, which makes it the
+    one dishonest thing the page could show.
+    """
+    return os.environ.get("NIM_DEPLOYMENT")
+
+
 def api_gpu():
     """Live telemetry, sampled when asked.
 
@@ -173,7 +188,7 @@ def api_gpu():
     utilisation figure that moves while the model is answering is the machine
     talking about itself.
     """
-    return {"gpu": hardware()}
+    return {"gpu": hardware(), "deployment": declared_deployment()}
 
 
 def api_state():
@@ -181,6 +196,7 @@ def api_state():
     state = _load_counter()
     state["resets"] = len(state.get("resets", []))
     return dict(state, mode=mode(), model=config.model, hardware=hardware(),
+                deployment=declared_deployment(),
                 path=config.path, examples=sorted(examples.EXAMPLES))
 
 
