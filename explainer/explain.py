@@ -71,6 +71,8 @@ def explain(receipt, config=None, transport=None):
             body = client.build_body(
                 config, messages, schema.explanation_schema(list(receipt["outputs"])))
             content, provenance = client.extract(send(body))
+            provenance["build"] = (provenance.get("system_fingerprint")
+                                   or client.probe_build(config))
         except client.TransportError as exc:
             record["findings"] = [{"code": "TRANSPORT_ERROR", "detail": str(exc)}]
             attempts.append(record)

@@ -87,6 +87,36 @@ def post(config, body):
         raise TransportError(f"{type(exc).__name__}: {exc}") from exc
 
 
+_BUILD_CACHE = {}
+
+
+def probe_build(config):
+    """A build identifier, where the serving stack publishes one.
+
+    The chat completion carries no `system_fingerprint` on either path, which
+    was read as "no build is available anywhere". A self-hosted NIM does
+    publish one — on its own endpoint, not in the OpenAI-shaped response — so
+    the honest answer differs by path rather than being absent from both.
+    Probed once per endpoint and cached; a stack without the route simply has
+    no build.
+    """
+    if config.base_url in _BUILD_CACHE:
+        return _BUILD_CACHE[config.base_url]
+    build = None
+    try:
+        request = urllib.request.Request(f"{config.base_url}/version",
+                                         headers={"Accept": "application/json"})
+        with urllib.request.urlopen(request, timeout=5) as response:
+            payload = json.loads(response.read())
+        release, api = payload.get("release"), payload.get("api")
+        if release:
+            build = f"nim {release}" + (f" (api {api})" if api else "")
+    except Exception:
+        build = None
+    _BUILD_CACHE[config.base_url] = build
+    return build
+
+
 def extract(response):
     """The answer text and the provenance the endpoint actually supplies.
 
@@ -101,6 +131,7 @@ def extract(response):
         raise TransportError(f"unexpected response shape: {str(response)[:200]}") from exc
     return (message.get("content") or "").strip(), {
         "model": response.get("model"),
+        "build": None,
         "response_id": response.get("id"),
         "system_fingerprint": response.get("system_fingerprint"),
         "usage": response.get("usage"),
