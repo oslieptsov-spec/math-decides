@@ -140,13 +140,22 @@ def hardware():
     everywhere else.
     """
     try:
-        out = subprocess.run(["nvidia-smi", "--query-gpu=name",
-                              "--format=csv,noheader"],
-                             capture_output=True, text=True, timeout=5)
+        out = subprocess.run(
+            ["nvidia-smi",
+             "--query-gpu=name,memory.used,memory.total,utilization.gpu",
+             "--format=csv,noheader,nounits"],
+            capture_output=True, text=True, timeout=5)
     except (OSError, subprocess.SubprocessError):
         return None
-    name = (out.stdout or "").strip().splitlines()
-    return name[0].strip() if out.returncode == 0 and name else None
+    rows = (out.stdout or "").strip().splitlines()
+    if out.returncode != 0 or not rows:
+        return None
+    parts = [p.strip() for p in rows[0].split(",")]
+    if len(parts) < 4:
+        return {"name": parts[0]} if parts else None
+    return {"name": parts[0], "memory_used_gb": round(int(parts[1]) / 1024, 1),
+            "memory_total_gb": round(int(parts[2]) / 1024, 1),
+            "utilization_pct": int(parts[3])}
 
 
 def mode():
@@ -155,6 +164,16 @@ def mode():
     if not config.api_key:
         return "canned"
     return "nim" if config.path == "nim" else "api-catalog"
+
+
+def api_gpu():
+    """Live telemetry, sampled when asked.
+
+    A label saying H100 is a label. Memory that is already committed and a
+    utilisation figure that moves while the model is answering is the machine
+    talking about itself.
+    """
+    return {"gpu": hardware()}
 
 
 def api_state():
@@ -316,6 +335,7 @@ ROUTES_GET = {"/api/state": lambda: api_state(),
               "/api/attacks": lambda: api_attacks(),
               "/api/presets": lambda: api_presets(),
               "/api/tour": lambda: api_tour(),
+              "/api/gpu": lambda: api_gpu(),
               "/api/sabotage": lambda: api_sabotage()}
 ROUTES_POST = {"/api/evaluate": api_evaluate, "/api/explain": api_explain,
                "/api/attack": api_attack, "/api/freetext": api_freetext}

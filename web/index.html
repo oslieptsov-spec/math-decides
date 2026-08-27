@@ -548,6 +548,21 @@ function loadPreset(){
   $('#preset-note').textContent = presetNote(name);
 }
 
+function paintGpu(gpu){
+  if (!gpu) return;
+  const chip = $('#hardware');
+  chip.hidden = false;
+  chip.textContent = gpu.memory_total_gb
+    ? `${gpu.name} · ${gpu.memory_used_gb}/${gpu.memory_total_gb} GB · ${gpu.utilization_pct}%`
+    : gpu.name;
+}
+
+// Sampled again after every answer, so the figure a viewer sees is the state
+// the machine was in when it answered — not a value painted once at load.
+async function refreshGpu(){
+  try { paintGpu((await api('/api/gpu')).gpu); } catch (e) { /* no GPU, no chip */ }
+}
+
 function setCounter(state){
   $('#count').textContent = state.attacks_blocked;
   $('#since').textContent = 'since ' + state.since;
@@ -692,6 +707,7 @@ function renderExplanation(result){
       ${answer.next_questions.map(q => `<div>? ${esc(q)}</div>`).join('')}</div>`;
 
   setResultAi(result);
+  refreshGpu();
   $('#ch-expl').textContent = result.receipt_sha ? 'bound ' + short(result.receipt_sha)
     : (returned.response_id ? short(returned.response_id) : 'template');
 }
@@ -1090,10 +1106,9 @@ function enterApp(){
   // Named only when it is real: the server reports the accelerator it found,
   // and the page says nothing when there is none.
   if (state.hardware){
-    $('#hardware').textContent = state.hardware;
-    $('#hardware').hidden = false;
+    paintGpu(state.hardware);
     $('#hero-stack').innerHTML =
-      `built with <b>Nemotron</b> · <b>NVIDIA NIM</b> on <b>${esc(state.hardware)}</b>`
+      `built with <b>Nemotron</b> · <b>NVIDIA NIM</b> on <b>${esc(state.hardware.name)}</b>`
       + ` · <b>${esc(state.model.replace(/^nvidia\//, ''))}</b> · open source (MIT)`;
   }
   await loadGroups();
