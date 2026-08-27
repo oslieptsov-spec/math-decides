@@ -72,7 +72,7 @@ spec:
             # An L4 holds 24 GB and the weights take most of it, so the KV
             # cache is bounded rather than left to claim what is left.
             - name: NIM_MAX_MODEL_LEN
-              value: "2048"
+              value: "8192"
             # This image publishes two profiles and picks the TensorRT-LLM one,
             # which builds an engine at startup sized for a batch of 256 and
             # will not fit a 24 GB card. The vLLM profile is the one that runs
@@ -82,12 +82,12 @@ spec:
               value: "4f904d571fe60ff24695b5ee2aa42da58cb460787a968f1e8a09f5a7e862728d"
           resources:
             requests:
-              cpu: "4"
-              memory: 16Gi
+              cpu: "6"
+              memory: 24Gi
               nvidia.com/gpu: "1"
             limits:
-              cpu: "4"
-              memory: 16Gi
+              cpu: "6"
+              memory: 24Gi
               nvidia.com/gpu: "1"
           volumeMounts:
             - {name: model-cache, mountPath: /model-cache}
@@ -103,7 +103,11 @@ spec:
         - name: model-cache
           persistentVolumeClaim: {claimName: nim-cache}
         - name: dshm
-          emptyDir: {medium: Memory, sizeLimit: 8Gi}
+          # Memory-backed, so every byte here is charged against the
+          # container's own memory limit. With tensor parallelism of one
+          # there is nothing to pass between workers, and the eight gigabytes
+          # this used to reserve were eight the engine could not have.
+          emptyDir: {medium: Memory, sizeLimit: 2Gi}
 ---
 apiVersion: v1
 kind: Service

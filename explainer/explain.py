@@ -113,6 +113,22 @@ def explain(receipt, config=None, transport=None):
     return _result(fallback, receipt, config, provenance, attempts, "template")
 
 
+def _note(provenance):
+    """What can honestly be said about identifying the thing that answered.
+
+    A hosted endpoint returns a model name and nothing that pins the build, so
+    an update on the provider side shows up in behaviour rather than in a
+    version. A self-hosted NIM publishes its build, and saying otherwise on
+    that path would be a claim about the run that the run contradicts.
+    """
+    build = (provenance or {}).get("build")
+    if build:
+        return (f"answered by {build}; the explanation is still bound to the "
+                "receipt rather than trusted for its own sake")
+    return ("the endpoint supplies no build identifier; a provider-side "
+            "model update is visible in behaviour, not in a version")
+
+
 def _result(explanation, receipt, config, provenance, attempts, source):
     return {
         "explanation": explanation,
@@ -125,7 +141,6 @@ def _result(explanation, receipt, config, provenance, attempts, source):
             "generated_at": _now(),
             # The explanation is bound to a receipt, not reproducible from it.
             "reproducible": False,
-            "note": ("the endpoint supplies no build identifier; a provider-side "
-                     "model update is visible in behaviour, not in a version"),
+            "note": _note(provenance),
         },
     }

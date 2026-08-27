@@ -282,6 +282,15 @@ class RequestShape(unittest.TestCase):
         self.assertEqual(one["properties"]["unreachable"]["items"]["enum"],
                          ["slippage_bps"])
 
+    def test_the_note_names_the_build_where_one_exists(self):
+        note = explain._note({"build": "nim 1.8.4 (api 3.1.0)"})
+        self.assertIn("nim 1.8.4", note)
+        self.assertNotIn("supplies no build identifier", note)
+
+    def test_the_note_admits_the_gap_where_none_exists(self):
+        for empty in ({}, {"build": None}, None):
+            self.assertIn("no build identifier", explain._note(empty))
+
     def test_a_strict_schema_is_asked_for_first(self):
         body = client.build_body(self.config, [], schema.explanation_schema())
         self.assertEqual(body["response_format"]["type"], "json_schema")
