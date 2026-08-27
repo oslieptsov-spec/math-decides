@@ -10,6 +10,15 @@
 # The service is ClusterIP on purpose. A NIM speaks an unauthenticated
 # OpenAI-compatible API; giving it a public address would put an open inference
 # endpoint on the internet to save one port-forward.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nim-cache
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: {storage: 100Gi}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -24,6 +33,10 @@ spec:
       labels: {app: nim}
     spec:
       nodeSelector:
+        # Autopilot schedules accelerators through a compute class; the
+        # accelerator label alone matches nothing and the pod sits Pending
+        # while forty node shapes decline it.
+        cloud.google.com/compute-class: Accelerator
         cloud.google.com/gke-accelerator: nvidia-l4
       imagePullSecrets:
         - name: ngc-secret
@@ -38,18 +51,18 @@ spec:
                 secretKeyRef: {name: ngc-api, key: NGC_API_KEY}
             - name: NIM_CACHE_PATH
               value: /model-cache
+            # An L4 holds 24 GB and the weights take most of it, so the KV
+            # cache is bounded rather than left to claim what is left.
+            - name: NIM_MAX_MODEL_LEN
+              value: "8192"
           resources:
-            # The model download is roughly 18 GB; Autopilot's default
-            # ephemeral storage is nowhere near that, so it is requested.
             requests:
-              cpu: "6"
-              memory: 24Gi
-              ephemeral-storage: 60Gi
+              cpu: "4"
+              memory: 16Gi
               nvidia.com/gpu: "1"
             limits:
-              cpu: "6"
-              memory: 24Gi
-              ephemeral-storage: 60Gi
+              cpu: "4"
+              memory: 16Gi
               nvidia.com/gpu: "1"
           volumeMounts:
             - {name: model-cache, mountPath: /model-cache}
@@ -60,8 +73,10 @@ spec:
             periodSeconds: 15
             failureThreshold: 80
       volumes:
+        # A volume, not ephemeral storage: the download is around 18 GB and
+        # Autopilot caps a pod's ephemeral disk well below that.
         - name: model-cache
-          emptyDir: {sizeLimit: 60Gi}
+          persistentVolumeClaim: {claimName: nim-cache}
         - name: dshm
           emptyDir: {medium: Memory, sizeLimit: 8Gi}
 ---
